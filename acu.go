@@ -43,22 +43,24 @@ func (acu *ACU) do(req *http.Request) ([]byte, error) {
 	return b, nil
 }
 
-func (acu *ACU) newRequest(method, url string, body io.Reader) (*http.Request, error) {
-	req, err := http.NewRequest(method, url, body)
+func (acu *ACU) newRequest(method, path string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, path, body)
 	req.Host = acu.Host
+	req.URL.Host = acu.Host
+	req.URL.Scheme = "http"
 	return req, err
 }
 
-func (acu *ACU) get(url string) ([]byte, error) {
-	req, err := acu.newRequest("GET", url, nil)
+func (acu *ACU) get(path string) ([]byte, error) {
+	req, err := acu.newRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
 	return acu.do(req)
 }
 
-func (acu *ACU) post(url, contentType string, body io.Reader) ([]byte, error) {
-	req, err := acu.newRequest("POST", url, body)
+func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
+	req, err := acu.newRequest("POST", path, body)
 	if err != nil {
 		return nil, err
 	}
