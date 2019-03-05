@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"time"
 
 	"github.com/ccatp/antenna-control-unit/datasets"
 )
@@ -20,8 +21,10 @@ type ACU struct {
 // NewACU returns a new connection to host.
 func NewACU(host string) *ACU {
 	return &ACU{
-		Host:   host,
-		client: &http.Client{},
+		Host: host,
+		client: &http.Client{
+			Timeout: 200 * time.Millisecond,
+		},
 	}
 }
 
