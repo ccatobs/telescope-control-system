@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"time"
 
@@ -23,7 +24,7 @@ func NewACU(host string) *ACU {
 	return &ACU{
 		Host: host,
 		client: &http.Client{
-			Timeout: 200 * time.Millisecond,
+			Timeout: 500 * time.Millisecond,
 		},
 	}
 }
@@ -71,14 +72,14 @@ func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
 	return acu.do(req)
 }
 
-// GetMonitoringRecord fetches the MonitoringRecord dataset.
-func (acu *ACU) GetMonitoringRecord(record *datasets.MonitoringRecord) error {
-	b, err := acu.get("/Values?identifier=DataSets.MonitoringRecord&format=Binary")
+// DatasetGet fetches a dataset.
+func (acu *ACU) DatasetGet(name string, d interface{}) error {
+	b, err := acu.get("/Values?identifier=DataSets." + name + "&format=Binary")
 	if err != nil {
 		return err
 	}
 	r := bytes.NewBuffer(b)
-	return binary.Read(r, binary.LittleEndian, record)
+	return binary.Read(r, binary.LittleEndian, d)
 }
 
 // ModeSet changes the mode.
@@ -101,13 +102,50 @@ func (acu *ACU) ModeSet(mode string) error {
 	return err
 }
 
+// MonitoringRecordGet fetches the MonitoringRecord dataset.
+func (acu *ACU) MonitoringRecordGet(record *datasets.MonitoringRecord) error {
+	b, err := acu.get("/Values?identifier=DataSets.MonitoringRecord&format=Binary")
+	if err != nil {
+		return err
+	}
+	r := bytes.NewBuffer(b)
+	return binary.Read(r, binary.LittleEndian, record)
+}
+
+// PresetPositionSet sets the preset position.
+func (acu *ACU) PresetPositionSet(azimuth, elevation float64) error {
+	path := fmt.Sprintf("/Command?identifier=DataSets.PositionTransfer&command=Set Azimuth Elevation&parameter=%g|%g",
+		azimuth, elevation)
+	_, err := acu.get(path)
+	return err
+}
+
 // ProgramTrackClear clears the program track queue.
 func (acu *ACU) ProgramTrackClear() error {
 	_, err := acu.get("/Command?identifier=DataSets.TimePositionTransfer&command=Clear Stack")
 	return err
 }
 
-// ProgramTrackGet get the current program track queue.
+// ProgramTrackAdd appends points to the program track queue.
+func (acu *ACU) ProgramTrackAdd(points []datasets.TimePositionTransfer) error {
+	var body bytes.Buffer
+	writer := multipart.NewWriter(&body)
+	part, err := writer.CreateFormFile("upload", "TCS")
+	if err != nil {
+		return err
+	}
+	for _, point := range points {
+		point.WriteSSV(part)
+	}
+	err = writer.Close()
+	if err != nil {
+		return err
+	}
+	_, err = acu.post("/UploadPtStack?type=FileMultipart", writer.FormDataContentType(), &body)
+	return err
+}
+
+// ProgramTrackGet gets the current program track queue.
 func (acu *ACU) ProgramTrackGet(points *[]datasets.TimePositionTransfer) error {
 	b, err := acu.get("/GetPtStack")
 	if err != nil {
@@ -124,16 +162,6 @@ func (acu *ACU) ProgramTrackGet(points *[]datasets.TimePositionTransfer) error {
 		slice = append(slice, point)
 	}
 	*points = slice
-	return err
-}
-
-// ProgramTrackSend appends points to the program track queue.
-func (acu *ACU) ProgramTrackSend(points []datasets.TimePositionTransfer) error {
-	var body bytes.Buffer
-	for _, point := range points {
-		point.WriteSSV(&body)
-	}
-	_, err := acu.post("/TrackFile?Type=File", "text/plain", &body)
 	return err
 }
 
