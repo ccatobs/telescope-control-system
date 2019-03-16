@@ -17,12 +17,12 @@ Scan repeatedly in azimuth, at constant elevation.
 ```sh
 curl 'localhost:5600/azimuth-scan' -d@- <<___
 {
-  "azimuth_range":[$1,$2],
-  "elevation":$3,
-  "num_scans":2,
-  "start_time":"$(date -u --rfc-3339=seconds -d'2 minutes' | tr ' ' T)",
-  "turnaround_time":30,
-  "speed":0.8
+  "azimuth_range": [110,130],
+  "elevation": 60,
+  "num_scans": 20,
+  "start_time": "2019-03-16T20:56:30Z",
+  "turnaround_time": 30,
+  "speed": 0.8
 }
 ___
 ```
