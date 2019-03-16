@@ -28,6 +28,27 @@ func init() {
 	log.SetFlags(log.Ldate | log.Ltime | log.LUTC | log.Lshortfile)
 }
 
+func jsonResponse(w http.ResponseWriter, err error, statusCode int) {
+	var response struct {
+		S string `json:"status"`
+		M string `json:"message,omitempty"`
+	}
+
+	if err != nil {
+		response.S = "error"
+		response.M = err.Error()
+	} else {
+		response.S = "ok"
+		statusCode = http.StatusOK
+	}
+
+	w.WriteHeader(statusCode)
+	err = json.NewEncoder(w).Encode(response)
+	if err != nil {
+		log.Print(err)
+	}
+}
+
 func main() {
 	var acuAddr string
 	var apiAddr string
@@ -46,7 +67,7 @@ func main() {
 	cmds := make(chan Command)
 
 	// abort signal
-	abort := make(chan struct{})
+	abort := make(chan chan bool)
 
 	// main loop
 	go func() {
@@ -64,8 +85,9 @@ func main() {
 					if err != nil {
 						log.Print(err)
 					}
-				case <-abort:
+				case c := <-abort:
 					log.Print("ignoring abort")
+					c <- false
 				}
 			}
 
@@ -94,8 +116,9 @@ func main() {
 					if err == nil {
 						done, err = isDone(&rec)
 					}
-				case <-abort:
+				case c := <-abort:
 					log.Print("aborting")
+					c <- true
 					done = true
 					cancel()
 					err = tel.Stop()
@@ -113,7 +136,24 @@ func main() {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/abort", func(w http.ResponseWriter, req *http.Request) {
-		abort <- struct{}{}
+		var err error
+		var statusCode int
+
+		if req.Method == "POST" {
+			c := make(chan bool)
+			abort <- c
+			if <-c {
+				statusCode = http.StatusOK
+			} else {
+				err = fmt.Errorf("nothing to abort")
+				statusCode = http.StatusConflict // not sure if this is the most appropriate code
+			}
+		} else {
+			err = fmt.Errorf("method not POST")
+			statusCode = http.StatusMethodNotAllowed
+		}
+
+		jsonResponse(w, err, statusCode)
 	})
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
@@ -166,25 +206,9 @@ func main() {
 			goto respond
 		}
 
+		statusCode = http.StatusOK
 	respond:
-		// json response
-		var response struct {
-			S string `json:"status"`
-			M string `json:"message,omitempty"`
-		}
-		if err != nil {
-			response.S = "error"
-			response.M = err.Error()
-		} else {
-			response.S = "ok"
-			statusCode = http.StatusOK
-		}
-
-		w.WriteHeader(statusCode)
-		err = json.NewEncoder(w).Encode(response)
-		if err != nil {
-			log.Print(err)
-		}
+		jsonResponse(w, err, statusCode)
 	})
 
 	// start accepting commands
