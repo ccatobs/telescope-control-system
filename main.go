@@ -175,6 +175,10 @@ func main() {
 				var x moveToCmd
 				err = dec.Decode(&x)
 				cmd = x
+			case "/track":
+				var x trackCmd
+				err = dec.Decode(&x)
+				cmd = x
 			default:
 				err = fmt.Errorf("bad endpoint: %s", endpoint)
 				statusCode = http.StatusNotFound

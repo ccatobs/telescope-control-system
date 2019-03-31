@@ -39,3 +39,19 @@ curl 'localhost:5600/move-to' -d@- <<___
 }
 ___
 ```
+
+### `/track`
+
+Track a point on the sky.
+
+```sh
+curl 'localhost:5600/track' -d@- <<___
+{
+    "start_time": "2019-04-01T20:00:00Z",
+    "stop_time": "2019-04-01T21:00:00Z",
+    "ra": 120,
+    "dec": 45
+}
+___
+```
+

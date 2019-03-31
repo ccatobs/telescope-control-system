@@ -81,8 +81,7 @@ func (cmd azScanCmd) Check() error {
 	return nil
 }
 
-func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern := AzimuthScanPattern(cmd.StartTime, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, time.Duration(cmd.TurnaroundTime*1e9)*time.Nanosecond)
+func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsDoneFunc, error) {
 	go func() {
 		err := tel.UploadScanPattern(ctx, pattern)
 		if err != nil {
@@ -95,4 +94,31 @@ func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 		return done, nil
 	}
 	return isDone, tel.acu.ModeSet("ProgramTrack")
+}
+
+func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	pattern := NewAzimuthScanPattern(cmd.StartTime, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, time.Duration(cmd.TurnaroundTime*1e9)*time.Nanosecond)
+	return startPattern(ctx, tel, pattern)
+}
+
+type trackCmd struct {
+	StartTime time.Time `json:"start_time"`
+	StopTime  time.Time `json:"stop_time"`
+	RA        float64
+	Dec       float64
+}
+
+func (cmd trackCmd) Check() error {
+	if !cmd.StartTime.Before(cmd.StopTime) {
+		return fmt.Errorf("bad times: start=%v, stop=%v", cmd.StartTime, cmd.StopTime)
+	}
+	return nil
+}
+
+func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	pattern, err := NewTrackScanPattern(cmd.StartTime, cmd.StopTime, cmd.RA, cmd.Dec)
+	if err != nil {
+		return nil, err
+	}
+	return startPattern(ctx, tel, pattern)
 }

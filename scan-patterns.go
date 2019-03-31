@@ -14,6 +14,7 @@ type ScanPattern interface {
 	Time() time.Time
 }
 
+// A RepeatingScanPattern executes an az,el pattern multiple times.
 type RepeatingScanPattern struct {
 	index, n, m int
 	azs         []float64
@@ -45,7 +46,8 @@ func (scan *RepeatingScanPattern) Next(p *datasets.TimePositionTransfer) bool {
 	return true
 }
 
-func AzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, vel float64, turnaround time.Duration) *RepeatingScanPattern {
+// NewAzimuthScanPattern scans back and forth in azimuth at constant elevation.
+func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, vel float64, turnaround time.Duration) *RepeatingScanPattern {
 	const m = 5
 	azs := make([]float64, 2*m)
 	els := make([]float64, 2*m)
@@ -72,6 +74,55 @@ func AzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, vel
 		dts: dts,
 		t:   start,
 	}
+}
+
+// A TrackScanPattern tracks a point on the celestial sphere.
+type TrackScanPattern struct {
+	t    time.Time
+	tmax time.Time
+	ra   float64
+	dec  float64
+}
+
+func NewTrackScanPattern(t0, t1 time.Time, ra, dec float64) (*TrackScanPattern, error) {
+	return &TrackScanPattern{
+		t:    t0,
+		tmax: t1,
+		ra:   ra,
+		dec:  dec,
+	}, nil
+}
+
+func (track *TrackScanPattern) Time() time.Time {
+	return track.t
+}
+
+func (track *TrackScanPattern) Next(p *datasets.TimePositionTransfer) bool {
+	t := track.t
+
+	// convert ra,dec to az,el
+	unixtime := float64(track.t.UnixNano()) * 1e-9
+	az, el, err := RADec2AzEl(unixtime, track.ra, track.dec)
+	if err != nil {
+		return false
+	}
+
+	p.Day = int32(t.YearDay())
+	p.TimeOfDay = DaySeconds(t)
+	p.AzPosition = az
+	p.ElPosition = el
+
+	remaining := track.tmax.Sub(t)
+	if remaining <= 0 {
+		return false
+	}
+
+	dt := 100 * time.Second
+	if remaining < dt {
+		dt = remaining
+	}
+	track.t = t.Add(dt)
+	return true
 }
 
 type DaisyScanPattern struct {
