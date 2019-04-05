@@ -11,8 +11,8 @@ import (
 // Telescope provides a higher-level interface to the ACU.
 // Responsible for pointing corrections and coordinate transformations.
 type Telescope struct {
-	acu        *ACU
-	pointing   Pointing
+	acu      *ACU
+	pointing Pointing
 }
 
 func NewTelescope(acu *ACU) *Telescope {
