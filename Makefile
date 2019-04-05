@@ -8,6 +8,7 @@ liberfa_a      := $(prefix)/lib/liberfa.a
 telescope-control-system: $(liberfa_a) *.go
 	CGO_CPPFLAGS="-I$(prefix)/include" \
 	CGO_LDFLAGS="$(prefix)/lib/liberfa.a -lm" \
+	GOOS=linux \
 	    go build -o $@
 
 $(liberfa_a): $(erfa_configure)
@@ -16,9 +17,9 @@ $(liberfa_a): $(erfa_configure)
 	    && make install
 
 $(erfa_configure): $(erfa_tarball)
-	tar -xaf "$(erfa_tarball)"
+	tar -xzf "$(erfa_tarball)"
 	touch "$(erfa_configure)"
 
 $(erfa_tarball):
-	wget "https://github.com/liberfa/erfa/releases/download/v$(erfa_version)/$(erfa_tarball)"
+	curl -LO "https://github.com/liberfa/erfa/releases/download/v$(erfa_version)/$(erfa_tarball)"
 
