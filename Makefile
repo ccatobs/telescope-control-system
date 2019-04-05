@@ -8,7 +8,6 @@ liberfa_a      := $(prefix)/lib/liberfa.a
 telescope-control-system: $(liberfa_a) *.go
 	CGO_CPPFLAGS="-I$(prefix)/include" \
 	CGO_LDFLAGS="$(prefix)/lib/liberfa.a -lm" \
-	GOOS=linux \
 	    go build -o $@
 
 $(liberfa_a): $(erfa_configure)
