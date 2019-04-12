@@ -1,0 +1,16 @@
+#!/bin/bash
+set -eu
+
+prefix="$PWD/deps"
+mkdir "$prefix"
+mkdir "$prefix/src"
+cd "$prefix/src"
+
+# liberfa
+erfa_version="1.4.0"
+erfa_tarball="erfa-${erfa_version}.tar.gz"
+curl -LO "https://github.com/liberfa/erfa/releases/download/v${erfa_version}/${erfa_tarball}"
+tar -xzf "$erfa_tarball"
+cd "erfa-${erfa_version}"
+./configure --prefix="$prefix" --disable-shared
+make install
