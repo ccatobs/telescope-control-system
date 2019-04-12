@@ -1,5 +1,12 @@
 # CCAT-prime Telescope Control System (TCS)
 
+## Building
+
+```sh
+./build-deps
+go build
+```
+
 ## Commands
 
 ### `/abort`

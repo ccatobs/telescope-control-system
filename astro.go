@@ -1,5 +1,7 @@
 package main
 
+// #cgo CPPFLAGS: -I${SRCDIR}/deps/include
+// #cgo LDFLAGS: ${SRCDIR}/deps/lib/liberfa.a -lm
 // #include "erfa.h"
 import "C"
 
