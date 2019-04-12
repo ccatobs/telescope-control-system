@@ -156,6 +156,26 @@ func main() {
 		jsonResponse(w, err, statusCode)
 	})
 
+	mux.HandleFunc("/acu-status", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" {
+			err := fmt.Errorf("method not GET")
+			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			return
+		}
+
+		var rec datasets.MonitoringRecord
+		err := acu.MonitoringRecordGet(&rec)
+		if err != nil {
+			jsonResponse(w, err, http.StatusInternalServerError)
+			return
+		}
+
+		err = json.NewEncoder(w).Encode(&rec)
+		if err != nil {
+			log.Print(err)
+		}
+	})
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		var cmd Command
 		var err error

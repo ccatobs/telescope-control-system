@@ -13,8 +13,16 @@ go build
 
 Abort the current command.
 
-```
+```sh
 curl -X POST 'http://localhost:5600/abort'
+```
+
+### `/acu-status`
+
+Get the raw status of the ACU.
+
+```sh
+curl 'localhost:5600/acu-status'
 ```
 
 ### `/azimuth-scan`
