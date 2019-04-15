@@ -195,6 +195,10 @@ func main() {
 				var x moveToCmd
 				err = dec.Decode(&x)
 				cmd = x
+			case "/path":
+				var x pathCmd
+				err = dec.Decode(&x)
+				cmd = x
 			case "/track":
 				var x trackCmd
 				err = dec.Decode(&x)

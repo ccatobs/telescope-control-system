@@ -55,6 +55,24 @@ curl 'localhost:5600/move-to' -d@- <<___
 ___
 ```
 
+### `/path`
+
+Follow a path of points.
+
+```sh
+curl 'localhost:5600/path' -d@- <<___
+{
+    "coordsys": "ICRS",
+    "points": [
+        [1555190103, 103, -33],
+        [1555190166, 106, -35],
+        [1555190228, 109, -37],
+        [1555190288, 111, -39]
+    ]
+}
+___
+```
+
 ### `/track`
 
 Track a point on the sky.

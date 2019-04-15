@@ -78,6 +78,54 @@ func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, 
 	}
 }
 
+// A PathScanPattern follows a path of points.
+type PathScanPattern struct {
+	coordsys string
+	points   [][3]float64
+	index    int
+}
+
+func NewPathScanPattern(coordsys string, points [][3]float64) (*PathScanPattern, error) {
+	return &PathScanPattern{
+		coordsys: coordsys,
+		points:   points,
+	}, nil
+}
+
+func (path PathScanPattern) Done() bool {
+	return path.index == len(path.points)
+}
+
+func (path *PathScanPattern) Time() time.Time {
+	return Unixtime2Time(path.points[path.index][0])
+}
+
+func (path *PathScanPattern) Next(p *datasets.TimePositionTransfer) error {
+	i := path.index
+	x := path.points[i]
+
+	var az, el float64
+	switch path.coordsys {
+	case "Horizon":
+		az, el = x[1], x[2]
+	case "ICRS":
+		var err error
+		az, el, err = RADec2AzEl(x[0], x[1], x[2])
+		if err != nil {
+			return err
+		}
+	}
+
+	t := Unixtime2Time(x[0])
+	p.Day = int32(t.YearDay())
+	p.TimeOfDay = DaySeconds(t)
+	p.AzPosition = az
+	p.ElPosition = el
+
+	path.index++
+	return nil
+}
+
 // A TrackScanPattern tracks a point on the celestial sphere.
 type TrackScanPattern struct {
 	t    time.Time

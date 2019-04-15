@@ -122,3 +122,26 @@ func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, erro
 	}
 	return startPattern(ctx, tel, pattern)
 }
+
+type pathCmd struct {
+	Coordsys string
+	Points   [][3]float64
+}
+
+func (cmd pathCmd) Check() error {
+	switch cmd.Coordsys {
+	case "Horizon":
+	case "ICRS":
+	default:
+		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
+	}
+	return nil
+}
+
+func (cmd pathCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	pattern, err := NewPathScanPattern(cmd.Coordsys, cmd.Points)
+	if err != nil {
+		return nil, err
+	}
+	return startPattern(ctx, tel, pattern)
+}
