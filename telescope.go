@@ -38,7 +38,6 @@ func (t Telescope) MoveTo(az, el float64) error {
 // UploadScanPattern uploads a program track in batches.
 func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) error {
 	total := 0
-	done := false
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
 	for {
 		// XXX:TBD find out how many stack slots are free
@@ -47,15 +46,21 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 
 		// upload batch
 		n := 0
-		for ; n < nmax; n++ {
-			done = !pattern.Next(&pts[n])
-			if done {
+		for !pattern.Done() {
+			err := pattern.Next(&pts[n])
+			if err != nil {
+				log.Printf("pattern error: %v", err)
 				break
 			}
 			// XXX:TBD correct velocity
 			rawAz, rawEl := t.pointing.Sky2Raw(pts[n].AzPosition, pts[n].ElPosition)
 			pts[n].AzPosition = rawAz
 			pts[n].ElPosition = rawEl
+
+			n++
+			if n == nmax {
+				break
+			}
 		}
 		total += n
 		if n > 0 {
@@ -65,7 +70,8 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 				return err
 			}
 		}
-		if done {
+
+		if pattern.Done() {
 			log.Printf("upload: done, %d points total", total)
 			return nil
 		}

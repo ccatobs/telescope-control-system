@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ccatp/antenna-control-unit/datasets"
@@ -8,9 +9,11 @@ import (
 
 // A ScanPattern represents an abstract scan pattern generator.
 type ScanPattern interface {
-	// Next retrieves the next point in the pattern. Returns false if there are no more points.
-	Next(*datasets.TimePositionTransfer) bool
-	// Time returns the time of the next point in the pattern, or of the final point if done.
+	// Done returns true if there are no more points, false otherwise.
+	Done() bool
+	// Next retrieves the next point in the pattern.
+	Next(*datasets.TimePositionTransfer) error
+	// Time returns the time of the next point in the pattern. Undefined if no more points.
 	Time() time.Time
 }
 
@@ -23,18 +26,17 @@ type RepeatingScanPattern struct {
 	t           time.Time
 }
 
+func (scan RepeatingScanPattern) Done() bool {
+	return scan.index == scan.n*scan.m
+}
+
 func (scan *RepeatingScanPattern) Time() time.Time {
 	return scan.t
 }
 
-func (scan *RepeatingScanPattern) Next(p *datasets.TimePositionTransfer) bool {
+func (scan *RepeatingScanPattern) Next(p *datasets.TimePositionTransfer) error {
 	t := scan.t
-	i := scan.index / scan.m
 	j := scan.index % scan.m
-
-	if i == scan.n {
-		return false
-	}
 
 	p.Day = int32(t.YearDay())
 	p.TimeOfDay = DaySeconds(t)
@@ -43,7 +45,7 @@ func (scan *RepeatingScanPattern) Next(p *datasets.TimePositionTransfer) bool {
 
 	scan.index++
 	scan.t = t.Add(scan.dts[j])
-	return true
+	return nil
 }
 
 // NewAzimuthScanPattern scans back and forth in azimuth at constant elevation.
@@ -93,18 +95,22 @@ func NewTrackScanPattern(t0, t1 time.Time, ra, dec float64) (*TrackScanPattern, 
 	}, nil
 }
 
+func (track TrackScanPattern) Done() bool {
+	return track.t.After(track.tmax)
+}
+
 func (track *TrackScanPattern) Time() time.Time {
 	return track.t
 }
 
-func (track *TrackScanPattern) Next(p *datasets.TimePositionTransfer) bool {
+func (track *TrackScanPattern) Next(p *datasets.TimePositionTransfer) error {
 	t := track.t
 
 	// convert ra,dec to az,el
 	unixtime := float64(track.t.UnixNano()) * 1e-9
 	az, el, err := RADec2AzEl(unixtime, track.ra, track.dec)
 	if err != nil {
-		return false
+		return err
 	}
 
 	p.Day = int32(t.YearDay())
@@ -113,23 +119,14 @@ func (track *TrackScanPattern) Next(p *datasets.TimePositionTransfer) bool {
 	p.ElPosition = el
 
 	remaining := track.tmax.Sub(t)
-	if remaining <= 0 {
-		return false
+	if remaining < 0 {
+		return fmt.Errorf("track pattern bad time")
 	}
 
 	dt := 100 * time.Second
-	if remaining < dt {
+	if 0 < remaining && remaining < dt {
 		dt = remaining
 	}
 	track.t = t.Add(dt)
-	return true
-}
-
-type DaisyScanPattern struct {
-	// XXX:TBD
-}
-
-func (daisy *DaisyScanPattern) Next(p *datasets.TimePositionTransfer) bool {
-	// XXX:TBD
-	return false
+	return nil
 }
