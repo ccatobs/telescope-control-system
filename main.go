@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"net/http"
 	"time"
 
@@ -168,6 +169,14 @@ func main() {
 		if err != nil {
 			jsonResponse(w, err, http.StatusInternalServerError)
 			return
+		}
+
+		// XXX: encoding/json doesn't handle NaNs
+		if math.IsNaN(rec.AzimuthDesiredPosition) {
+			rec.AzimuthDesiredPosition = -1e9
+		}
+		if math.IsNaN(rec.ElevationDesiredPosition) {
+			rec.ElevationDesiredPosition = -1e9
 		}
 
 		err = json.NewEncoder(w).Encode(&rec)
