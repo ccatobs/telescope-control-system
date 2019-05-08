@@ -42,18 +42,25 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 	for {
 		// XXX:TBD find out how many stack slots are free
 		nmax := 2000
-		t0 := pattern.Time()
+
+		iter := pattern.Iterator()
+		t0 := iter.Time()
 
 		// upload batch
 		n := 0
-		for !pattern.Done() {
-			err := pattern.Next(&pts[n])
+		for !pattern.Done(iter) {
+			err := pattern.Next(iter, &pts[n])
 			if err != nil {
 				log.Printf("pattern error: %v", err)
 				break
 			}
 			// XXX:TBD correct velocity
 			rawAz, rawEl := t.pointing.Sky2Raw(pts[n].AzPosition, pts[n].ElPosition)
+			err = checkAzEl(rawAz, rawEl)
+			if err != nil {
+				return err
+			}
+
 			pts[n].AzPosition = rawAz
 			pts[n].ElPosition = rawEl
 
@@ -71,13 +78,13 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			}
 		}
 
-		if pattern.Done() {
+		if pattern.Done(iter) {
 			log.Printf("upload: done, %d points total", total)
 			return nil
 		}
 
 		// sleep
-		t := pattern.Time()
+		t := iter.Time()
 		wait := t.Sub(time.Now()) - t.Sub(t0)/4
 		log.Printf("upload: sleeping for %.3g minutes", wait.Minutes())
 

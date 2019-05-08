@@ -7,6 +7,8 @@ import (
 	"math"
 	"time"
 
+	"github.com/pkg/errors"
+
 	"github.com/ccatp/antenna-control-unit/datasets"
 )
 
@@ -25,6 +27,16 @@ var (
 	errElevationOutOfRange = fmt.Errorf("elevation out of range [%g,%g]", elevationMin, elevationMax)
 )
 
+func checkAzEl(az, el float64) error {
+	if az < azimuthMin || az > azimuthMax {
+		return errAzimuthOutOfRange
+	}
+	if el < elevationMin || el > elevationMax {
+		return errElevationOutOfRange
+	}
+	return nil
+}
+
 type IsDoneFunc func(*datasets.MonitoringRecord) (bool, error)
 
 type Command interface {
@@ -41,13 +53,7 @@ type moveToCmd struct {
 }
 
 func (cmd moveToCmd) Check() error {
-	if cmd.Azimuth < azimuthMin || cmd.Azimuth > azimuthMax {
-		return errAzimuthOutOfRange
-	}
-	if cmd.Elevation < elevationMin || cmd.Elevation > elevationMax {
-		return errElevationOutOfRange
-	}
-	return nil
+	return checkAzEl(cmd.Azimuth, cmd.Elevation)
 }
 
 func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
@@ -135,13 +141,33 @@ func (cmd pathCmd) Check() error {
 	default:
 		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
 	}
+
+	if len(cmd.Points) == 0 {
+		return fmt.Errorf("no points in path")
+	}
+
+	// sanity check the first 100 points
+	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points)
+	iter := pattern.Iterator()
+	for i := 0; i < 100; i++ {
+		if pattern.Done(iter) {
+			break
+		}
+		var pt datasets.TimePositionTransfer
+		err := pattern.Next(iter, &pt)
+		if err != nil {
+			return err
+		}
+		err = checkAzEl(pt.AzPosition, pt.ElPosition)
+		if err != nil {
+			return errors.Wrapf(err, "point %d", i)
+		}
+	}
+
 	return nil
 }
 
 func (cmd pathCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern, err := NewPathScanPattern(cmd.Coordsys, cmd.Points)
-	if err != nil {
-		return nil, err
-	}
+	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points)
 	return startPattern(ctx, tel, pattern)
 }
