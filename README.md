@@ -6,7 +6,9 @@
 ./build-deps
 go build
 ```
+**note to ubuntu users**
 
+Install go from [golang stable release site](https://golang.org/dl/)  rather than the apt-get repo. The latter is out of data and doesn't work
 ## Commands
 
 ### `/abort`
