@@ -16,9 +16,9 @@ const (
 	positionTol              = 1e-4
 	speedTol                 = 1e-4
 	maxFreeProgramTrackStack = 10000
-	azimuthMin               = 90.0
-	azimuthMax               = 190.0
-	elevationMin             = 0.0
+	azimuthMin               = 1.0
+	azimuthMax               = 358.8
+	elevationMin             = 5.0
 	elevationMax             = 90.0
 )
 
@@ -29,12 +29,12 @@ var (
 
 func checkAzEl(az, el float64) error {
 	if az < azimuthMin || az > azimuthMax {
-                error := fmt.Sprintf("command azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
+                error := fmt.Sprintf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
                 log.Print(error)
 		return fmt.Errorf(error)
 	}
 	if el < elevationMin || el > elevationMax {
-                error := fmt.Sprintf("command azimuth (%g) out of range %g [%g,%g]", el, elevationMin, elevationMax)
+                error := fmt.Sprintf("commanded elevation (%g) out of range [%g,%g]", el, elevationMin, elevationMax)
                 log.Print(error)
 		return fmt.Errorf(error)
 	}
