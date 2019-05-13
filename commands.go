@@ -29,10 +29,14 @@ var (
 
 func checkAzEl(az, el float64) error {
 	if az < azimuthMin || az > azimuthMax {
-		return errAzimuthOutOfRange
+                error := fmt.Sprintf("command azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
+                log.Print(error)
+		return fmt.Errorf(error)
 	}
 	if el < elevationMin || el > elevationMax {
-		return errElevationOutOfRange
+                error := fmt.Sprintf("command azimuth (%g) out of range %g [%g,%g]", el, elevationMin, elevationMax)
+                log.Print(error)
+		return fmt.Errorf(error)
 	}
 	return nil
 }
