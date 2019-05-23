@@ -9,6 +9,11 @@ go build
 **note to ubuntu users**
 
 Install go from [golang stable release site](https://golang.org/dl/)  rather than the apt-get repo. The latter is out of data and doesn't work
+
+in 1804 If you don't have your git creditial set correctly, go build will fail when connecting to github.com private repos (antenna-control-unit for example), before running go build see the envirnmemt variable GIT_TERMINAL_PROMPT=1 as follows:
+```sh
+export GIT_TERMINAL_PROMPT=1
+```
 ## Commands
 
 ### `/abort`
