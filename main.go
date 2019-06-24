@@ -15,7 +15,7 @@ import (
 
 const (
 	// poll the ACU status at 1 Hz
-	acuPollDuration = 1000 * time.Millisecond
+	acuPollDuration = 10000 * time.Millisecond
 
 	// max time waiting to queue command
 	commandBusyTimeout = 100 * time.Millisecond
@@ -60,6 +60,43 @@ func main() {
 	acu := NewACU(acuAddr)
 	tel := NewTelescope(acu)
 
+
+	type MeasurementFloat struct {
+		Name	string
+		Description	string
+		Unit	string
+		Value	float64
+		Created	time.Time
+		}
+	type TelescopePosition struct {
+		Values	[]MeasurementFloat
+		}
+	tel_pos := TelescopePosition{
+				Values: 
+				[]MeasurementFloat{
+					MeasurementFloat{
+						Name: "Elevation", 
+						Description: "Telescope height above sea level",
+						Unit: "meters",
+						Value : CCATP_ELEVATION_METERS,
+						Created : time.Now(),
+					},
+					MeasurementFloat{
+						Name: "Latitude", 
+						Description: "Telescope latitude",
+						Unit: "degrees",
+						Value : CCATP_LATITUDE_DEG,
+						Created : time.Now(),
+					},
+					MeasurementFloat{
+						Name: "Longitude",
+						Description: "Telescope longitude with positive east",
+						Unit: "degrees",
+						Value : CCATP_LONGITUDE_EAST_DEG,
+						Created : time.Now(),
+					},
+				},
+				}
 	// XXX:DEBUG fake pointing model
 	tel.pointing.azOffset = 5
 	tel.pointing.elOffset = 6
@@ -97,7 +134,7 @@ func main() {
 
 			if !rec.Remote {
 				log.Print("ignoring command, ACU not in remote mode")
-				continue
+				//continue
 			}
 
 			// start command
@@ -185,6 +222,18 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("/telescope-position", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" {
+			err := fmt.Errorf("method not GET")
+			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			return
+		}
+		err = json.NewEncoder(w).Encode(&tel_pos)
+		if err != nil {
+			log.Print(err)
+		}
+	})
+	
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		var cmd Command
 		var err error
