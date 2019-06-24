@@ -68,12 +68,8 @@ func main() {
 		Value	float64
 		Created	time.Time
 		}
-	type TelescopePosition struct {
-		Values	[]MeasurementFloat
-		}
-	tel_pos := TelescopePosition{
-				Values: 
-				[]MeasurementFloat{
+	
+	var tel_pos = []MeasurementFloat{
 					MeasurementFloat{
 						Name: "Elevation", 
 						Description: "Telescope height above sea level",
@@ -95,7 +91,6 @@ func main() {
 						Value : CCATP_LONGITUDE_EAST_DEG,
 						Created : time.Now(),
 					},
-				},
 				}
 	// XXX:DEBUG fake pointing model
 	tel.pointing.azOffset = 5
@@ -228,7 +223,7 @@ func main() {
 			jsonResponse(w, err, http.StatusMethodNotAllowed)
 			return
 		}
-		err = json.NewEncoder(w).Encode(&tel_pos)
+		err := json.NewEncoder(w).Encode(&tel_pos)
 		if err != nil {
 			log.Print(err)
 		}
