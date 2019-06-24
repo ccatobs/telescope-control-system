@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"time"
-
+	"log"
 	"github.com/ccatp/antenna-control-unit/datasets"
 )
 
@@ -119,6 +119,7 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 	case "ICRS":
 		var err error
 		az, el, err = RADec2AzEl(x[0], x[1], x[2])
+		log.Print("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f",x[0], x[1], x[2],az,el)
 		if err != nil {
 			return err
 		}
@@ -168,6 +169,7 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePo
 	// convert ra,dec to az,el
 	unixtime := float64(t.UnixNano()) * 1e-9
 	az, el, err := RADec2AzEl(unixtime, track.ra, track.dec)
+	log.Print("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f",unixtime, track.ra, track.dec,az,el)
 	if err != nil {
 		return err
 	}
