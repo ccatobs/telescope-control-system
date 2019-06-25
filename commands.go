@@ -112,21 +112,21 @@ func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 }
 
 type trackCmd struct {
-	StartTime time.Time `json:"start_time"`
-	StopTime  time.Time `json:"stop_time"`
+	StartTime        float64 `json:"start_time"`
+	StopTime       float64 `json:"stop_time"`
 	RA        float64
 	Dec       float64
 }
 
 func (cmd trackCmd) Check() error {
-	if !cmd.StartTime.Before(cmd.StopTime) {
-		return fmt.Errorf("bad times: start=%v, stop=%v", cmd.StartTime, cmd.StopTime)
+	if  (cmd.StopTime < cmd.StartTime) {
+		return fmt.Errorf("bad times: start=%f, stop=%f", cmd.StartTime, cmd.StopTime)
 	}
 	return nil
 }
 
 func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern, err := NewTrackScanPattern(cmd.StartTime, cmd.StopTime, cmd.RA, cmd.Dec)
+	pattern, err := NewTrackScanPattern(Unixtime2Time(cmd.StartTime), Unixtime2Time(cmd.StopTime), cmd.RA, cmd.Dec)
 	if err != nil {
 		return nil, err
 	}
@@ -145,6 +145,7 @@ func (cmd pathCmd) Check() error {
 	default:
 		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
 	}
+
 
 	if len(cmd.Points) == 0 {
 		return fmt.Errorf("no points in path")
