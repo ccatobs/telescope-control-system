@@ -87,11 +87,14 @@ Track a point on the sky.
 ```sh
 curl 'localhost:5600/track' -d@- <<___
 {
-    "start_time": "2019-04-01T20:00:00Z",
-    "stop_time": "2019-04-01T21:00:00Z",
+    "start_time": 1555190103,
+    "stop_time": 1555190166,
     "ra": 120,
     "dec": 45
 }
 ___
 ```
 
+### `/telescope-position`
+
+Get details of telescope position (lat, long, elevation)
