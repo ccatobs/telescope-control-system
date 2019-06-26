@@ -116,9 +116,16 @@ type trackCmd struct {
 	StopTime       float64 `json:"stop_time"`
 	RA        float64
 	Dec       float64
+	Coordsys string
 }
 
 func (cmd trackCmd) Check() error {
+	switch cmd.Coordsys {
+	case "Horizon":
+	case "ICRS":
+	default:
+		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
+	}
 	if  (cmd.StopTime < cmd.StartTime) {
 		return fmt.Errorf("bad times: start=%f, stop=%f", cmd.StartTime, cmd.StopTime)
 	}
@@ -126,7 +133,7 @@ func (cmd trackCmd) Check() error {
 }
 
 func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern, err := NewTrackScanPattern(Unixtime2Time(cmd.StartTime), Unixtime2Time(cmd.StopTime), cmd.RA, cmd.Dec)
+	pattern, err := NewTrackScanPattern(Unixtime2Time(cmd.StartTime), Unixtime2Time(cmd.StopTime), cmd.RA, cmd.Dec, cmd.Coordsys)
 	if err != nil {
 		return nil, err
 	}

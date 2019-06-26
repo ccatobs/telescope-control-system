@@ -90,7 +90,8 @@ curl 'localhost:5600/track' -d@- <<___
     "start_time": 1555190103,
     "stop_time": 1555190166,
     "ra": 120,
-    "dec": 45
+    "dec": 45,
+    "coordsys": "ICRS"
 }
 ___
 ```
