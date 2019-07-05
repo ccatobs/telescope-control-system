@@ -60,38 +60,37 @@ func main() {
 	acu := NewACU(acuAddr)
 	tel := NewTelescope(acu)
 
-
 	type MeasurementFloat struct {
-		Name	string
-		Description	string
-		Unit	string
-		Value	float64
-		Created	time.Time
-		}
-	
+		Name        string
+		Description string
+		Unit        string
+		Value       float64
+		Created     time.Time
+	}
+
 	var tel_pos = []MeasurementFloat{
-					MeasurementFloat{
-						Name: "Elevation", 
-						Description: "Telescope height above sea level",
-						Unit: "meters",
-						Value : CCATP_ELEVATION_METERS,
-						Created : time.Now(),
-					},
-					MeasurementFloat{
-						Name: "Latitude", 
-						Description: "Telescope latitude",
-						Unit: "degrees",
-						Value : CCATP_LATITUDE_DEG,
-						Created : time.Now(),
-					},
-					MeasurementFloat{
-						Name: "Longitude",
-						Description: "Telescope longitude with positive east",
-						Unit: "degrees",
-						Value : CCATP_LONGITUDE_EAST_DEG,
-						Created : time.Now(),
-					},
-				}
+		MeasurementFloat{
+			Name:        "Elevation",
+			Description: "Telescope height above sea level",
+			Unit:        "meters",
+			Value:       CCATP_ELEVATION_METERS,
+			Created:     time.Now(),
+		},
+		MeasurementFloat{
+			Name:        "Latitude",
+			Description: "Telescope latitude",
+			Unit:        "degrees",
+			Value:       CCATP_LATITUDE_DEG,
+			Created:     time.Now(),
+		},
+		MeasurementFloat{
+			Name:        "Longitude",
+			Description: "Telescope longitude with positive east",
+			Unit:        "degrees",
+			Value:       CCATP_LONGITUDE_EAST_DEG,
+			Created:     time.Now(),
+		},
+	}
 	// XXX:DEBUG fake pointing model
 	tel.pointing.azOffset = 5
 	tel.pointing.elOffset = 6
@@ -228,7 +227,7 @@ func main() {
 			log.Print(err)
 		}
 	})
-	
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		var cmd Command
 		var err error

@@ -2,8 +2,9 @@ package main
 
 import (
 	"fmt"
-	"time"
 	"log"
+	"time"
+
 	"github.com/ccatp/antenna-control-unit/datasets"
 )
 
@@ -119,7 +120,7 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 	case "ICRS":
 		var err error
 		az, el, err = RADec2AzEl(x[0], x[1], x[2])
-		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f",x[0], x[1], x[2],az,el)
+		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", x[0], x[1], x[2], az, el)
 		if err != nil {
 			return err
 		}
@@ -140,19 +141,19 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 
 // A TrackScanPattern tracks a point on the celestial sphere.
 type TrackScanPattern struct {
-	tmin time.Time
-	tmax time.Time
-	ra   float64
-	dec  float64
+	tmin     time.Time
+	tmax     time.Time
+	ra       float64
+	dec      float64
 	coordsys string
 }
 
 func NewTrackScanPattern(t0, t1 time.Time, ra, dec float64, coordsys string) (*TrackScanPattern, error) {
 	return &TrackScanPattern{
-		tmin: t0,
-		tmax: t1,
-		ra:   ra,
-		dec:  dec,
+		tmin:     t0,
+		tmax:     t1,
+		ra:       ra,
+		dec:      dec,
 		coordsys: coordsys,
 	}, nil
 }
@@ -167,10 +168,10 @@ func (track TrackScanPattern) Done(iter *ScanPatternIterator) bool {
 
 func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePositionTransfer) error {
 	t := iter.t
-	
+
 	// convert ra,dec to az,el
 	var az, el float64
-	
+
 	switch track.coordsys {
 	case "Horizon":
 		az, el = track.ra, track.dec
@@ -178,17 +179,17 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePo
 		var err error
 		unixtime := float64(t.UnixNano()) * 1e-9
 		az, el, err = RADec2AzEl(unixtime, track.ra, track.dec)
-		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f",unixtime,track.ra, track.dec,az,el)
+		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", unixtime, track.ra, track.dec, az, el)
 		if err != nil {
 			return err
 		}
 	}
-	
+
 	p.Day = int32(t.YearDay())
 	p.TimeOfDay = DaySeconds(t)
 	p.AzPosition = az
 	p.ElPosition = el
-	
+
 	remaining := track.tmax.Sub(t)
 	if remaining < 0 {
 		return fmt.Errorf("track pattern bad time")

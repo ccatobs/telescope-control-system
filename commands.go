@@ -29,13 +29,13 @@ var (
 
 func checkAzEl(az, el float64) error {
 	if az < azimuthMin || az > azimuthMax {
-                error := fmt.Sprintf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
-                log.Print(error)
+		error := fmt.Sprintf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
+		log.Print(error)
 		return fmt.Errorf(error)
 	}
 	if el < elevationMin || el > elevationMax {
-                error := fmt.Sprintf("commanded elevation (%g) out of range [%g,%g]", el, elevationMin, elevationMax)
-                log.Print(error)
+		error := fmt.Sprintf("commanded elevation (%g) out of range [%g,%g]", el, elevationMin, elevationMax)
+		log.Print(error)
 		return fmt.Errorf(error)
 	}
 	return nil
@@ -112,11 +112,11 @@ func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 }
 
 type trackCmd struct {
-	StartTime        float64 `json:"start_time"`
-	StopTime       float64 `json:"stop_time"`
+	StartTime float64 `json:"start_time"`
+	StopTime  float64 `json:"stop_time"`
 	RA        float64
 	Dec       float64
-	Coordsys string
+	Coordsys  string
 }
 
 func (cmd trackCmd) Check() error {
@@ -126,7 +126,7 @@ func (cmd trackCmd) Check() error {
 	default:
 		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
 	}
-	if  (cmd.StopTime < cmd.StartTime) {
+	if cmd.StopTime < cmd.StartTime {
 		return fmt.Errorf("bad times: start=%f, stop=%f", cmd.StartTime, cmd.StopTime)
 	}
 	return nil
@@ -152,7 +152,6 @@ func (cmd pathCmd) Check() error {
 	default:
 		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
 	}
-
 
 	if len(cmd.Points) == 0 {
 		return fmt.Errorf("no points in path")
