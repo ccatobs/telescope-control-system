@@ -41,7 +41,7 @@ func checkAzEl(az, el float64) error {
 	return nil
 }
 
-type IsDoneFunc func(*datasets.MonitoringRecord) (bool, error)
+type IsDoneFunc func(*datasets.StatusGeneral8100) (bool, error)
 
 type Command interface {
 	Check() error
@@ -62,11 +62,11 @@ func (cmd moveToCmd) Check() error {
 
 func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
 	err := tel.MoveTo(cmd.Azimuth, cmd.Elevation)
-	isDone := func(rec *datasets.MonitoringRecord) (bool, error) {
+	isDone := func(rec *datasets.StatusGeneral8100) (bool, error) {
 		done := (rec.AzimuthMode == datasets.AzimuthModePreset) &&
 			(rec.ElevationMode == datasets.ElevationModePreset) &&
-			(math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthDesiredPosition) < positionTol) &&
-			(math.Abs(rec.ElevationCurrentPosition-rec.ElevationDesiredPosition) < positionTol) &&
+			(math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthCommandedPosition) < positionTol) &&
+			(math.Abs(rec.ElevationCurrentPosition-rec.ElevationCommandedPosition) < positionTol) &&
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
 			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
 		return done, nil
@@ -98,9 +98,9 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 			log.Print(err)
 		}
 	}()
-	isDone := func(rec *datasets.MonitoringRecord) (bool, error) {
+	isDone := func(rec *datasets.StatusGeneral8100) (bool, error) {
 		// XXX:racy
-		done := rec.FreeProgramTrackStack == maxFreeProgramTrackStack-1 // last point remains on the stack
+		done := rec.QtyOfFreeProgramTrackStackPositions == maxFreeProgramTrackStack-1 // last point remains on the stack
 		return done, nil
 	}
 	return isDone, tel.acu.ModeSet("ProgramTrack")

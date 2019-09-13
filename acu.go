@@ -102,9 +102,9 @@ func (acu *ACU) ModeSet(mode string) error {
 	return err
 }
 
-// MonitoringRecordGet fetches the MonitoringRecord dataset.
-func (acu *ACU) MonitoringRecordGet(record *datasets.MonitoringRecord) error {
-	b, err := acu.get("/Values?identifier=DataSets.MonitoringRecord&format=Binary")
+// StatusGeneral8100Get fetches the StatusGeneral8100 dataset.
+func (acu *ACU) StatusGeneral8100Get(record *datasets.StatusGeneral8100) error {
+	b, err := acu.get("/Values?identifier=DataSets.StatusGeneral8100&format=Binary")
 	if err != nil {
 		return err
 	}

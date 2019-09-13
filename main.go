@@ -103,7 +103,7 @@ func main() {
 
 	// main loop
 	go func() {
-		var rec datasets.MonitoringRecord
+		var rec datasets.StatusGeneral8100
 		for {
 			// wait for command
 			var cmd Command
@@ -113,7 +113,7 @@ func main() {
 				case cmd = <-cmds:
 					break waitForCmdLoop
 				case <-time.After(acuPollDuration):
-					err := acu.MonitoringRecordGet(&rec)
+					err := acu.StatusGeneral8100Get(&rec)
 					if err != nil {
 						log.Print(err)
 					}
@@ -144,7 +144,7 @@ func main() {
 			for done := false; !done; {
 				select {
 				case <-time.After(acuPollDuration):
-					err = acu.MonitoringRecordGet(&rec)
+					err = acu.StatusGeneral8100Get(&rec)
 					if err == nil {
 						done, err = isDone(&rec)
 					}
@@ -195,19 +195,19 @@ func main() {
 			return
 		}
 
-		var rec datasets.MonitoringRecord
-		err := acu.MonitoringRecordGet(&rec)
+		var rec datasets.StatusGeneral8100
+		err := acu.StatusGeneral8100Get(&rec)
 		if err != nil {
 			jsonResponse(w, err, http.StatusInternalServerError)
 			return
 		}
 
 		// XXX: encoding/json doesn't handle NaNs
-		if math.IsNaN(rec.AzimuthDesiredPosition) {
-			rec.AzimuthDesiredPosition = -1e9
+		if math.IsNaN(rec.AzimuthCommandedPosition) {
+			rec.AzimuthCommandedPosition = -1e9
 		}
-		if math.IsNaN(rec.ElevationDesiredPosition) {
-			rec.ElevationDesiredPosition = -1e9
+		if math.IsNaN(rec.ElevationCommandedPosition) {
+			rec.ElevationCommandedPosition = -1e9
 		}
 
 		err = json.NewEncoder(w).Encode(&rec)
