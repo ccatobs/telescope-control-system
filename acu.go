@@ -114,7 +114,7 @@ func (acu *ACU) StatusGeneral8100Get(record *datasets.StatusGeneral8100) error {
 
 // PresetPositionSet sets the preset position.
 func (acu *ACU) PresetPositionSet(azimuth, elevation float64) error {
-	path := fmt.Sprintf("/Command?identifier=DataSets.PositionTransfer&command=Set Azimuth Elevation&parameter=%g|%g",
+	path := fmt.Sprintf("/Command?identifier=DataSets.CmdAzElPositionTransfer&command=Set Azimuth Elevation&parameter=%g|%g",
 		azimuth, elevation)
 	_, err := acu.get(path)
 	return err
@@ -122,7 +122,7 @@ func (acu *ACU) PresetPositionSet(azimuth, elevation float64) error {
 
 // ProgramTrackClear clears the program track queue.
 func (acu *ACU) ProgramTrackClear() error {
-	_, err := acu.get("/Command?identifier=DataSets.TimePositionTransfer&command=Clear Stack")
+	_, err := acu.get("/Command?identifier=DataSets.CmdTimePositionTransfer&command=Clear Stack")
 	return err
 }
 
