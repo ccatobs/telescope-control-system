@@ -6,7 +6,7 @@
 ./build-deps
 go build
 ```
-## Note to Ubuntu 18.04 users
+### Note to Ubuntu 18.04 users
 
 Install go from the [golang stable release site](https://golang.org/dl/) rather than apt-get,
 as the latter is too out-of-date.
