@@ -6,14 +6,15 @@
 ./build-deps
 go build
 ```
-**note to ubuntu users**
+## Note to Ubuntu 18.04 users
 
-Install go from [golang stable release site](https://golang.org/dl/)  rather than the apt-get repo. The latter is out of data and doesn't work
+Install go from the [golang stable release site](https://golang.org/dl/) rather than apt-get,
+as the latter is too out-of-date.
 
-in 1804 If you don't have your git credentials set correctly, go build will fail when connecting to github.com private repos (antenna-control-unit for example), before running go build see the envirnmemt variable GIT_TERMINAL_PROMPT=1 as follows:
-```sh
-export GIT_TERMINAL_PROMPT=1
-```
+If you don't have your git credentials set correctly,
+`go build` will fail because it needs access to a private github repository.
+Try setting the environment variable `GIT_TERMINAL_PROMPT=1`.
+
 ## Commands
 
 ### `/abort`
