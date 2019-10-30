@@ -96,6 +96,14 @@ curl 'localhost:5600/track' -d@- <<___
 }
 ___
 ```
+### `/clear-track`
+
+Clear the current program track from telescope
+
+```sh
+curl  'localhost:5600/clear-track"
+```
+
 
 ### `/telescope-position`
 
