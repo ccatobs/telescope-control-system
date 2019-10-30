@@ -215,7 +215,25 @@ func main() {
 			log.Print(err)
 		}
 	})
-
+    
+	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
+		var statusCode int	
+		log.Print("clearing program track stack")
+		if req.Method != "GET" {
+			err := fmt.Errorf("method not GET")
+			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			return
+		}
+		err := acu.ProgramTrackClear()
+		if err != nil {
+			log.Print(err)
+			statusCode = http.StatusBadRequest
+		} else {
+			statusCode = http.StatusOK
+		}
+		jsonResponse(w, err, statusCode)
+	})    
+	
 	mux.HandleFunc("/telescope-position", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" {
 			err := fmt.Errorf("method not GET")
