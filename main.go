@@ -215,9 +215,9 @@ func main() {
 			log.Print(err)
 		}
 	})
-    
+
 	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
-		var statusCode int	
+		var statusCode int
 		log.Print("clearing program track stack")
 		if req.Method != "GET" {
 			err := fmt.Errorf("method not GET")
@@ -232,8 +232,8 @@ func main() {
 			statusCode = http.StatusOK
 		}
 		jsonResponse(w, err, statusCode)
-	})    
-	
+	})
+
 	mux.HandleFunc("/telescope-position", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" {
 			err := fmt.Errorf("method not GET")
