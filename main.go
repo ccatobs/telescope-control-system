@@ -145,9 +145,10 @@ func main() {
 				select {
 				case <-time.After(acuPollDuration):
 					err = acu.StatusGeneral8100Get(&rec)
-					if err == nil {
-						done, err = isDone(&rec)
+					if err != nil {
+						break // select statement
 					}
+					done, err = isDone(&rec)
 				case c := <-abort:
 					log.Print("aborting")
 					c <- true
