@@ -157,7 +157,16 @@ func (cmd pathCmd) Check() error {
 		return fmt.Errorf("no points in path")
 	}
 
-	// sanity check the first 100 points
+	// check the times
+	for i := 1; i < len(cmd.Points); i++ {
+		// ACU ICD 2.0, section 8.9.3:
+		// "The minimum time interval between two samples is 0.05 s."
+		if cmd.Points[i][0]-cmd.Points[i-1][0] < 0.05 {
+			return fmt.Errorf("points are separated by less than 50 ms")
+		}
+	}
+
+	// check the first 100 coordinates
 	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points)
 	iter := pattern.Iterator()
 	for i := 0; i < 100; i++ {
