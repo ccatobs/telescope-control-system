@@ -15,7 +15,7 @@ import (
 
 const (
 	// poll the ACU status at 1 Hz
-	acuPollDuration = 10000 * time.Millisecond
+	acuPollDuration = 1000 * time.Millisecond
 
 	// max time waiting to queue command
 	commandBusyTimeout = 100 * time.Millisecond
@@ -128,7 +128,7 @@ func main() {
 
 			if !rec.Remote {
 				log.Print("ignoring command, ACU not in remote mode")
-				//continue
+				continue
 			}
 
 			// start command
