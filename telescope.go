@@ -44,7 +44,6 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		nmax := 2000
 
 		iter := pattern.Iterator()
-		t0 := iter.Time()
 
 		// upload batch
 		n := 0
@@ -54,6 +53,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 				log.Printf("pattern error: %v", err)
 				break
 			}
+
 			// XXX:TBD correct velocity
 			rawAz, rawEl := t.pointing.Sky2Raw(pts[n].AzPosition, pts[n].ElPosition)
 			err = checkAzEl(rawAz, rawEl)
@@ -83,9 +83,9 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			return nil
 		}
 
-		// sleep
-		t := iter.Time()
-		wait := t.Sub(time.Now()) - t.Sub(t0)/4
+		// sleep until we can upload the next batch
+		waitSecs := 86400*float64(pts[n-1].Day-pts[0].Day) + (pts[n-1].TimeOfDay - pts[0].TimeOfDay)
+		wait := time.Duration(waitSecs) * time.Second
 		log.Printf("upload: sleeping for %.3g minutes", wait.Minutes())
 
 		select {

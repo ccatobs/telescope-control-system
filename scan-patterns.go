@@ -22,11 +22,6 @@ type ScanPatternIterator struct {
 	t     time.Time
 }
 
-// Time returns the time of the next point in the pattern. Undefined if no more points.
-func (iter ScanPatternIterator) Time() time.Time {
-	return iter.t
-}
-
 // A RepeatingScanPattern executes an az,el pattern multiple times.
 type RepeatingScanPattern struct {
 	index, n, m int
@@ -133,9 +128,6 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 	p.ElPosition = el
 
 	iter.index++
-	if i+1 < len(path.points) {
-		iter.t = Unixtime2Time(path.points[i+1][0])
-	}
 	return nil
 }
 
