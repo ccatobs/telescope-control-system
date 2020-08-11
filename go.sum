@@ -1,6 +1,4 @@
-github.com/ccatp/antenna-control-unit v0.2.0 h1:PTItkt2UmPUIaANYkIWT/s9tUjCsDjr2ppc9338Vo/0=
-github.com/ccatp/antenna-control-unit v0.2.0/go.mod h1:jc7LkQPQ1RQQO0KZ/7ltyYyMCCzypd97x3ro3zeTHu0=
-github.com/ccatp/antenna-control-unit v0.3.0 h1:3j7NmtLusHSet+JoHIwp8RSptgXSJ1DJnUVC3M7uypQ=
-github.com/ccatp/antenna-control-unit v0.3.0/go.mod h1:jc7LkQPQ1RQQO0KZ/7ltyYyMCCzypd97x3ro3zeTHu0=
+github.com/ccatp/antenna-control-unit/datasets v0.3.0 h1:TegbRPwXraj9dYXAKCsi8ZP0cJQVWpCP7ZvBGLbZ8wQ=
+github.com/ccatp/antenna-control-unit/datasets v0.3.0/go.mod h1:yfmED6FyA2wS/FvYnFUnGoNnont5kdD8I2PAt1Z0CyI=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=
 github.com/pkg/errors v0.8.1/go.mod h1:bwawxfHBFNV+L2hUp1rHADufV3IMtnDRdf1r5NINEl0=
