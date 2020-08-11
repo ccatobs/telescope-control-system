@@ -92,8 +92,8 @@ func main() {
 		},
 	}
 	// XXX:DEBUG fake pointing model
-	tel.pointing.azOffset = 5
-	tel.pointing.elOffset = 6
+	tel.pointing.azOffset = 0
+	tel.pointing.elOffset = 0
 
 	// command queue
 	cmds := make(chan Command)
