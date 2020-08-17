@@ -15,6 +15,13 @@ If you don't have your git credentials set correctly,
 `go build` will fail because it needs access to a private github repository.
 Try setting the environment variable `GIT_TERMINAL_PROMPT=1`.
 
+## Running
+
+```
+export CCATP_ACU_ADDR=10.1.1.1:8100
+./telescope-control-system
+```
+
 ## Commands
 
 ### `/abort`

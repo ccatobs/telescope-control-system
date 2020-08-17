@@ -50,11 +50,18 @@ func jsonResponse(w http.ResponseWriter, err error, statusCode int) {
 	}
 }
 
+func getenv(key, def string) string {
+	if val, ok := os.LookupEnv(key); ok {
+		return val
+	}
+	return def
+}
+
 func main() {
 	var acuAddr string
 	var apiAddr string
-	flag.StringVar(&acuAddr, "acu", "172.16.5.95:8100", "ACU address")
-	flag.StringVar(&apiAddr, "api", ":5600", "HTTP API address")
+	flag.StringVar(&acuAddr, "acu", getenv("CCATP_ACU_ADDR", "172.16.5.95:8100"), "ACU address")
+	flag.StringVar(&apiAddr, "api", getenv("CCATP_TCS_ADDR", ":5600"), "HTTP API address")
 	flag.Parse()
 
 	acu := NewACU(acuAddr)
