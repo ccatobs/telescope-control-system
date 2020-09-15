@@ -16,10 +16,18 @@ const (
 	positionTol              = 1e-4
 	speedTol                 = 1e-4
 	maxFreeProgramTrackStack = 10000
-	azimuthMin               = 1.0
-	azimuthMax               = 358.8
-	elevationMin             = 5.0
-	elevationMax             = 90.0
+
+	azimuthMin      = -180.0
+	azimuthMax      = 360.0
+	azimuthSpeedMax = 3.0  // [deg/sec]
+	azimuthAccelMax = 6.0  // [deg/sec^2]
+	azimuthJerkMax  = 12.0 // [deg/sec^3]
+
+	elevationMin      = 0.0
+	elevationMax      = 180.0
+	elevationSpeedMax = 1.5 // [deg/sec]
+	elevationAccelMax = 1.5 // [deg/sec^2]
+	elevationJerkMax  = 6.0 // [deg/sec^3]
 )
 
 var (
