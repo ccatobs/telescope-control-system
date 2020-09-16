@@ -87,12 +87,14 @@ func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, 
 type PathScanPattern struct {
 	coordsys string
 	points   [][3]float64
+	t0       float64
 }
 
 func NewPathScanPattern(coordsys string, points [][3]float64) *PathScanPattern {
 	return &PathScanPattern{
 		coordsys: coordsys,
 		points:   points,
+		t0:       float64(time.Now().Unix()),
 	}
 }
 
@@ -107,6 +109,14 @@ func (path PathScanPattern) Done(iter *ScanPatternIterator) bool {
 func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePositionTransfer) error {
 	i := iter.index
 	x := path.points[i]
+	ut := x[0]
+	if ut < 1 {
+		return fmt.Errorf("path starts too soon")
+	} else if ut < 100000 {
+		ut += path.t0
+	} else if ut < path.t0 {
+		return fmt.Errorf("path point is in the past")
+	}
 
 	var az, el float64
 	switch path.coordsys {
@@ -114,14 +124,14 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 		az, el = x[1], x[2]
 	case "ICRS":
 		var err error
-		az, el, err = RADec2AzEl(x[0], x[1], x[2])
-		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", x[0], x[1], x[2], az, el)
+		az, el, err = RADec2AzEl(ut, x[1], x[2])
+		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", ut, x[1], x[2], az, el)
 		if err != nil {
 			return err
 		}
 	}
 
-	t := Unixtime2Time(x[0])
+	t := Unixtime2Time(ut)
 	p.Day = int32(t.YearDay())
 	p.TimeOfDay = DaySeconds(t)
 	p.AzPosition = az
