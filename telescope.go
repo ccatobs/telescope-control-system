@@ -41,6 +41,13 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 	total := 0
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
 	var status datasets.StatusGeneral8100
+
+	err := t.acu.ProgramTrackClear()
+	if err != nil {
+		return err
+	}
+	time.Sleep(3 * time.Millisecond) // wait for ProgramTrackClear to take effect
+
 	for {
 		err := t.acu.StatusGeneral8100Get(&status)
 		if err != nil {
@@ -88,9 +95,11 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		}
 
 		// sleep until we can upload the next batch
-		waitSecs := 86400*float64(pts[n-1].Day-pts[0].Day) + (pts[n-1].TimeOfDay - pts[0].TimeOfDay)
+		now := time.Now().UTC()
+		waitSecs := 86400*float64(pts[n-1].Day-int32(now.YearDay())) + (pts[n-1].TimeOfDay - DaySeconds(now))
+		waitSecs = waitSecs / 2
 		wait := time.Duration(waitSecs) * time.Second
-		log.Printf("upload: sleeping for %.3g minutes", wait.Minutes())
+		log.Printf("upload: next batch in %.3g minutes", wait.Minutes())
 
 		select {
 		case <-time.After(wait):
