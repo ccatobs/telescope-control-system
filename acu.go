@@ -137,6 +137,7 @@ func (acu *ACU) ProgramTrackAdd(points []datasets.TimePositionTransfer) error {
 	for _, point := range points {
 		point.WriteSSV(part)
 	}
+	part.Write([]byte("\r\n"))
 	err = writer.Close()
 	if err != nil {
 		return err
