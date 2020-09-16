@@ -37,6 +37,7 @@ func (t Telescope) MoveTo(az, el float64) error {
 
 // UploadScanPattern uploads a program track in batches.
 func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) error {
+	iter := pattern.Iterator()
 	total := 0
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
 	var status datasets.StatusGeneral8100
@@ -47,8 +48,6 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			return err
 		}
 		nmax := int(status.QtyOfFreeProgramTrackStackPositions)
-
-		iter := pattern.Iterator()
 
 		// upload batch
 		n := 0
