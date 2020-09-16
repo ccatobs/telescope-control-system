@@ -132,6 +132,9 @@ func main() {
 			}
 
 			desc := fmt.Sprintf("%#v", cmd)
+			if len(desc) > 200 {
+				desc = fmt.Sprintf("%.200s...", desc)
+			}
 			log.Printf("got command: %s", desc)
 
 			if !rec.Remote {
