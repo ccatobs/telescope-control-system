@@ -39,9 +39,14 @@ func (t Telescope) MoveTo(az, el float64) error {
 func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) error {
 	total := 0
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
+	var status datasets.StatusGeneral8100
 	for {
-		// XXX:TBD find out how many stack slots are free
-		nmax := 2000
+		err := t.acu.StatusGeneral8100Get(&status)
+		if err != nil {
+			log.Print("failed to get ACU status: ", err)
+			return err
+		}
+		nmax := int(status.QtyOfFreeProgramTrackStackPositions)
 
 		iter := pattern.Iterator()
 
