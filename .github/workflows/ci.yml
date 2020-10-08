@@ -24,6 +24,9 @@ jobs:
         run: |-
           gcloud --quiet auth configure-docker
 
+      - name: SSH key for private repo access
+        run: echo "${{ secrets.GH_READ_ACCESS_SSH_KEY_ED25519 }}" > github_ssh_key_ed25519
+
       - name: Build docker image
         run: |-
           docker build --tag "$TAG" .
