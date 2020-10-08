@@ -10,7 +10,7 @@ COPY . .
 RUN ./build-deps
 RUN go get -d -v
 RUN go test -v
-RUN CGO_ENABLED=0 GOOS=linux go install -a -v
+RUN go install -a -v -tags netgo -ldflags=-extldflags=-static
 
 FROM scratch
 COPY --from=0 /go/bin/telescope-control-system /
