@@ -5,7 +5,8 @@ on:
     branches: master
 
 env:
-  TAG: gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/${{ github.event.repository.name }}:latest
+  GCR_TAG: gcr.io/${{ secrets.GCLOUD_PROJECT_ID }}/${{ github.event.repository.name }}:latest
+  GHP_TAG: docker.pkg.github.com/${{ github.repository }}/${{ github.event.repository.name }}:latest
 
 jobs:
   main:
@@ -21,17 +22,20 @@ jobs:
           project_id: ${{ secrets.GCLOUD_PROJECT_ID }}
 
       - name: Configure docker to use gcloud for authentication
-        run: |-
-          gcloud --quiet auth configure-docker
+        run: gcloud --quiet auth configure-docker
 
       - name: SSH key for private repo access
         run: echo "${{ secrets.GH_READ_ACCESS_SSH_KEY_ED25519 }}" > github_ssh_key_ed25519
 
       - name: Build docker image
-        run: |-
-          docker build --tag "$TAG" .
+        run: docker build --tag "$GCR_TAG" --tag "$GHP_TAG" .
 
-      - name: Publish image to GCR
-        run: |-
-          docker push "$TAG"
+      - name: Publish image to Google Container Registry
+        run: docker push "$GCR_TAG"
+
+      - name: Login to GitHub Packages
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u "${{ github.actor }}" --password-stdin
+
+      - name: Publish image to GitHub Packages
+        run: docker push "$GHP_TAG"
 
