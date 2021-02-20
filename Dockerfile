@@ -8,7 +8,7 @@ RUN git config --global url.ssh://git@github.com/ccatp/.insteadOf https://github
 
 COPY . .
 RUN ./build-deps
-RUN go get -d -v
+RUN GOPRIVATE=github.com/ccatp go get -d -v
 RUN go test -v
 RUN go install -a -v -tags netgo -ldflags=-extldflags=-static
 
