@@ -7,8 +7,6 @@ import (
 	"math"
 	"time"
 
-	"github.com/pkg/errors"
-
 	"github.com/ccatp/antenna-control-unit/datasets"
 )
 
@@ -190,7 +188,7 @@ func (cmd pathCmd) Check() error {
 		}
 		err = checkAzEl(pt.AzPosition, pt.ElPosition)
 		if err != nil {
-			return errors.Wrapf(err, "point %d", i)
+			return fmt.Errorf("point %d: %w", i, err)
 		}
 	}
 
