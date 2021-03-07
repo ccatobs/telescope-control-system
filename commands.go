@@ -161,6 +161,7 @@ func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, erro
 type pathCmd struct {
 	Coordsys string
 	Points   [][5]float64
+	Delay    float64
 }
 
 func (cmd pathCmd) Check() error {
@@ -169,6 +170,10 @@ func (cmd pathCmd) Check() error {
 	case "ICRS":
 	default:
 		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
+	}
+
+	if cmd.Delay < 0 {
+		return fmt.Errorf("negative delay")
 	}
 
 	if len(cmd.Points) == 0 {
@@ -185,7 +190,7 @@ func (cmd pathCmd) Check() error {
 	}
 
 	// check the first 100 coordinates
-	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points)
+	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points, cmd.Delay)
 	iter := pattern.Iterator()
 	for i := 0; i < 100; i++ {
 		if pattern.Done(iter) {
@@ -206,6 +211,6 @@ func (cmd pathCmd) Check() error {
 }
 
 func (cmd pathCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points)
+	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points, cmd.Delay)
 	return startPattern(ctx, tel, pattern)
 }

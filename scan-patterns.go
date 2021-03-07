@@ -118,11 +118,11 @@ type PathScanPattern struct {
 	t0       float64
 }
 
-func NewPathScanPattern(coordsys string, points [][5]float64) *PathScanPattern {
+func NewPathScanPattern(coordsys string, points [][5]float64, delay float64) *PathScanPattern {
 	return &PathScanPattern{
 		coordsys: coordsys,
 		points:   points,
-		t0:       float64(time.Now().Unix()),
+		t0:       float64(time.Now().Unix()) + delay,
 	}
 }
 
