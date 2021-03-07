@@ -27,7 +27,7 @@ func (t Telescope) Stop() error {
 }
 
 func (t Telescope) MoveTo(az, el float64) error {
-	rawAz, rawEl := t.pointing.Sky2Raw(az, el)
+	rawAz, rawEl, _, _ := t.pointing.Sky2Raw(az, el, 0, 0)
 	err := t.acu.PresetPositionSet(rawAz, rawEl)
 	if err != nil {
 		return err
@@ -59,21 +59,28 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		// upload batch
 		n := 0
 		for !pattern.Done(iter) {
-			err := pattern.Next(iter, &pts[n])
+			pt := &pts[n]
+			err := pattern.Next(iter, pt)
 			if err != nil {
 				log.Printf("pattern error: %v", err)
 				break
 			}
 
-			// XXX:TBD correct velocity
-			rawAz, rawEl := t.pointing.Sky2Raw(pts[n].AzPosition, pts[n].ElPosition)
-			err = checkAzEl(rawAz, rawEl)
+			rawAz, rawEl, rawVaz, rawVel := t.pointing.Sky2Raw(
+				pt.AzPosition,
+				pt.ElPosition,
+				pt.AzVelocity,
+				pt.ElVelocity,
+			)
+			err = checkAzEl(rawAz, rawEl, rawVaz, rawVel)
 			if err != nil {
 				return err
 			}
 
-			pts[n].AzPosition = rawAz
-			pts[n].ElPosition = rawEl
+			pt.AzPosition = rawAz
+			pt.ElPosition = rawEl
+			pt.AzVelocity = rawVaz
+			pt.ElVelocity = rawVel
 
 			n++
 			if n == nmax {

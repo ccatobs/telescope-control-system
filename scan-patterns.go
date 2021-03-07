@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/ccatp/antenna-control-unit/datasets"
@@ -27,6 +28,10 @@ type RepeatingScanPattern struct {
 	index, n, m int
 	azs         []float64
 	els         []float64
+	vazs        []float64
+	vels        []float64
+	fazs        []int8
+	fels        []int8
 	dts         []time.Duration
 	start       time.Time
 }
@@ -47,6 +52,10 @@ func (scan RepeatingScanPattern) Next(iter *ScanPatternIterator, p *datasets.Tim
 	p.TimeOfDay = DaySeconds(t)
 	p.AzPosition = scan.azs[j]
 	p.ElPosition = scan.els[j]
+	p.AzVelocity = scan.vazs[j]
+	p.ElVelocity = scan.vels[j]
+	p.AzFlag = scan.fazs[j]
+	p.ElFlag = scan.fels[j]
 
 	iter.index++
 	iter.t = t.Add(scan.dts[j])
@@ -54,30 +63,49 @@ func (scan RepeatingScanPattern) Next(iter *ScanPatternIterator, p *datasets.Tim
 }
 
 // NewAzimuthScanPattern scans back and forth in azimuth at constant elevation.
-func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, vel float64, turnaround time.Duration) *RepeatingScanPattern {
+func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, speed float64, turnaround time.Duration) *RepeatingScanPattern {
 	const m = 5
 	azs := make([]float64, 2*m)
 	els := make([]float64, 2*m)
+	vazs := make([]float64, 2*m)
+	vels := make([]float64, 2*m)
+	fazs := make([]int8, 2*m)
+	fels := make([]int8, 2*m)
 	dts := make([]time.Duration, 2*m)
 	daz := (az[1] - az[0]) / (m - 1)
+	vel := math.Copysign(speed, daz)
 	dt := time.Duration(1e9*daz/vel) * time.Nanosecond
 	for i := 0; i < m; i++ {
 		azs[i] = az[0] + float64(i)*daz
 		els[i] = el
+		vazs[i] = vel
+		vels[i] = 0
+		fazs[i] = 1 // linear interpolation
+		fels[i] = 0
 		dts[i] = dt
 	}
 	for i := m; i < 2*m; i++ {
 		azs[i] = az[1] - float64(i-m)*daz
 		els[i] = el
+		vazs[i] = -vel
+		vels[i] = 0
+		fazs[i] = 1 // linear interpolation
+		fels[i] = 0
 		dts[i] = dt
 	}
 	dts[m-1] = turnaround
 	dts[2*m-1] = turnaround
+	fazs[m-1] = 2 // turnaround flag
+	fazs[2*m-1] = 2
 	return &RepeatingScanPattern{
 		n:     num,
 		m:     2 * m,
 		azs:   azs,
 		els:   els,
+		vazs:  vazs,
+		vels:  vels,
+		fazs:  fazs,
+		fels:  fels,
 		dts:   dts,
 		start: start,
 	}
@@ -86,11 +114,11 @@ func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, 
 // A PathScanPattern follows a path of points.
 type PathScanPattern struct {
 	coordsys string
-	points   [][3]float64
+	points   [][5]float64
 	t0       float64
 }
 
-func NewPathScanPattern(coordsys string, points [][3]float64) *PathScanPattern {
+func NewPathScanPattern(coordsys string, points [][5]float64) *PathScanPattern {
 	return &PathScanPattern{
 		coordsys: coordsys,
 		points:   points,
@@ -118,13 +146,14 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 		return fmt.Errorf("path point is in the past")
 	}
 
-	var az, el float64
+	var az, el, vaz, vel float64
 	switch path.coordsys {
 	case "Horizon":
-		az, el = x[1], x[2]
+		az, el, vaz, vel = x[1], x[2], x[3], x[4]
 	case "ICRS":
 		var err error
 		az, el, err = RADec2AzEl(ut, x[1], x[2])
+		// XXX:TBD velocities
 		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", ut, x[1], x[2], az, el)
 		if err != nil {
 			return err
@@ -136,6 +165,8 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 	p.TimeOfDay = DaySeconds(t)
 	p.AzPosition = az
 	p.ElPosition = el
+	p.AzVelocity = vaz
+	p.ElVelocity = vel
 
 	iter.index++
 	return nil

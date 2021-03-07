@@ -33,7 +33,7 @@ var (
 	errElevationOutOfRange = fmt.Errorf("elevation out of range [%g,%g]", elevationMin, elevationMax)
 )
 
-func checkAzEl(az, el float64) error {
+func checkAzEl(az, el, vaz, vel float64) error {
 	if az < azimuthMin || az > azimuthMax {
 		error := fmt.Sprintf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
 		log.Print(error)
@@ -41,6 +41,16 @@ func checkAzEl(az, el float64) error {
 	}
 	if el < elevationMin || el > elevationMax {
 		error := fmt.Sprintf("commanded elevation (%g) out of range [%g,%g]", el, elevationMin, elevationMax)
+		log.Print(error)
+		return fmt.Errorf(error)
+	}
+	if math.Abs(vaz) > azimuthSpeedMax {
+		error := fmt.Sprintf("commanded azimuth vel (%g) out of range [%g,%g]", vaz, -azimuthSpeedMax, azimuthSpeedMax)
+		log.Print(error)
+		return fmt.Errorf(error)
+	}
+	if math.Abs(vel) > elevationSpeedMax {
+		error := fmt.Sprintf("commanded elevation vel (%g) out of range [%g,%g]", vel, -elevationSpeedMax, elevationSpeedMax)
 		log.Print(error)
 		return fmt.Errorf(error)
 	}
@@ -63,7 +73,7 @@ type moveToCmd struct {
 }
 
 func (cmd moveToCmd) Check() error {
-	return checkAzEl(cmd.Azimuth, cmd.Elevation)
+	return checkAzEl(cmd.Azimuth, cmd.Elevation, 0, 0)
 }
 
 func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
@@ -150,7 +160,7 @@ func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, erro
 
 type pathCmd struct {
 	Coordsys string
-	Points   [][3]float64
+	Points   [][5]float64
 }
 
 func (cmd pathCmd) Check() error {
@@ -186,7 +196,7 @@ func (cmd pathCmd) Check() error {
 		if err != nil {
 			return err
 		}
-		err = checkAzEl(pt.AzPosition, pt.ElPosition)
+		err = checkAzEl(pt.AzPosition, pt.ElPosition, pt.AzVelocity, pt.ElVelocity)
 		if err != nil {
 			return fmt.Errorf("point %d: %w", i, err)
 		}
