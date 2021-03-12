@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"flag"
 	"fmt"
 	"log"
 	"math"
@@ -59,11 +58,8 @@ func getenv(key, def string) string {
 }
 
 func main() {
-	var acuAddr string
-	var apiAddr string
-	flag.StringVar(&acuAddr, "acu", getenv("CCATP_ACU_ADDR", "172.16.5.95:8100"), "ACU address")
-	flag.StringVar(&apiAddr, "api", getenv("CCATP_TCS_ADDR", ":5600"), "HTTP API address")
-	flag.Parse()
+	acuAddr := getenv("CCATP_ACU_ADDR", "172.16.5.95:8100")
+	apiAddr := getenv("CCATP_TCS_ADDR", ":5600")
 
 	acu := NewACU(acuAddr)
 	tel := NewTelescope(acu)
