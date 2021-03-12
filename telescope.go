@@ -102,8 +102,8 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		}
 
 		// sleep until we can upload the next batch
-		now := time.Now().UTC()
-		waitSecs := 86400*float64(pts[n-1].Day-int32(now.YearDay())) + (pts[n-1].TimeOfDay - DaySeconds(now))
+		doy, tod := VertexTime(time.Now())
+		waitSecs := 86400*float64(pts[n-1].Day-doy) + (pts[n-1].TimeOfDay - tod)
 		waitSecs = waitSecs / 2
 		wait := time.Duration(waitSecs) * time.Second
 		log.Printf("upload: next batch in %.3g minutes", wait.Minutes())

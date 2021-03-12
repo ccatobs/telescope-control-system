@@ -48,8 +48,7 @@ func (scan RepeatingScanPattern) Next(iter *ScanPatternIterator, p *datasets.Tim
 	t := iter.t
 	j := iter.index % scan.m
 
-	p.Day = int32(t.YearDay())
-	p.TimeOfDay = DaySeconds(t)
+	p.Day, p.TimeOfDay = VertexTime(t)
 	p.AzPosition = scan.azs[j]
 	p.ElPosition = scan.els[j]
 	p.AzVelocity = scan.vazs[j]
@@ -161,8 +160,7 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 	}
 
 	t := Unixtime2Time(ut)
-	p.Day = int32(t.YearDay())
-	p.TimeOfDay = DaySeconds(t)
+	p.Day, p.TimeOfDay = VertexTime(t)
 	p.AzPosition = az
 	p.ElPosition = el
 	p.AzVelocity = vaz
@@ -218,8 +216,7 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePo
 		}
 	}
 
-	p.Day = int32(t.YearDay())
-	p.TimeOfDay = DaySeconds(t)
+	p.Day, p.TimeOfDay = VertexTime(t)
 	p.AzPosition = az
 	p.ElPosition = el
 
