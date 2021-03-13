@@ -23,7 +23,7 @@ func NewTelescope(acu *ACU) *Telescope {
 	}
 }
 
-func (t Telescope) UpdateStatus() error {
+func (t *Telescope) UpdateStatus() error {
 	return t.acu.StatusGeneral8100Get(&t.rec)
 }
 
