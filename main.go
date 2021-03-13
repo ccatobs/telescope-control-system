@@ -165,6 +165,7 @@ func main() {
 				}
 				if err != nil {
 					log.Print(err)
+					break
 				}
 			}
 
