@@ -1,19 +1,16 @@
-# CCAT-prime Telescope Control System (TCS)
+# FYST Telescope Control System (TCS)
 
 ## Building
 
+First, build `liberfa`:
 ```sh
 ./build-deps
+```
+
+Then:
+```sh
 go build
 ```
-### Note to Ubuntu 18.04 users
-
-Install go from the [golang stable release site](https://golang.org/dl/) rather than apt-get,
-as the latter is too out-of-date.
-
-If you don't have your git credentials set correctly,
-`go build` will fail because it needs access to a private github repository.
-Try setting the environment variable `GIT_TERMINAL_PROMPT=1`.
 
 ## Running
 
