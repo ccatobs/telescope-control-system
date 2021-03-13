@@ -58,11 +58,10 @@ func getenv(key, def string) string {
 }
 
 func main() {
-	acuHost := getenv("CCATP_ACU_HOST", "172.16.5.95")
+	acuAddr := getenv("CCATP_ACU_ADDR", "172.16.5.95:8100")
 	apiAddr := getenv("CCATP_TCS_ADDR", ":5600")
 
-	log.Print("ACU host: ", acuHost)
-	acu := NewACU(acuHost)
+	acu := NewACU(acuAddr)
 	tel := NewTelescope(acu)
 
 	type MeasurementFloat struct {

@@ -13,21 +13,16 @@ import (
 	"github.com/ccatp/antenna-control-unit/datasets"
 )
 
-const (
-	ACU_COMMAND_PORT = 8100
-	ACU_MONITOR_PORT = 8110
-)
-
 // ACU manages communication with the ACU.
 type ACU struct {
-	host   string
+	Host   string
 	client *http.Client
 }
 
 // NewACU returns a new connection to host.
 func NewACU(host string) *ACU {
 	return &ACU{
-		host: host,
+		Host: host,
 		client: &http.Client{
 			Timeout: 500 * time.Millisecond,
 		},
@@ -52,17 +47,16 @@ func (acu *ACU) do(req *http.Request) ([]byte, error) {
 	return b, nil
 }
 
-func (acu *ACU) newRequest(port int, method, path string, body io.Reader) (*http.Request, error) {
+func (acu *ACU) newRequest(method, path string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, path, body)
-	host := fmt.Sprintf("%s:%d", acu.host, port)
-	req.Host = host
-	req.URL.Host = host
+	req.Host = acu.Host
+	req.URL.Host = acu.Host
 	req.URL.Scheme = "http"
 	return req, err
 }
 
 func (acu *ACU) get(path string) ([]byte, error) {
-	req, err := acu.newRequest(ACU_COMMAND_PORT, "GET", path, nil)
+	req, err := acu.newRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -70,7 +64,7 @@ func (acu *ACU) get(path string) ([]byte, error) {
 }
 
 func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
-	req, err := acu.newRequest(ACU_COMMAND_PORT, "POST", path, body)
+	req, err := acu.newRequest("POST", path, body)
 	if err != nil {
 		return nil, err
 	}
@@ -78,18 +72,9 @@ func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
 	return acu.do(req)
 }
 
-// For GET requests that just read data, and don't send commands.
-func (acu *ACU) getMonitor(path string) ([]byte, error) {
-	req, err := acu.newRequest(ACU_MONITOR_PORT, "GET", path, nil)
-	if err != nil {
-		return nil, err
-	}
-	return acu.do(req)
-}
-
 // DatasetGet fetches a dataset.
 func (acu *ACU) DatasetGet(name string, d interface{}) error {
-	b, err := acu.getMonitor("/Values?identifier=DataSets." + name + "&format=Binary")
+	b, err := acu.get("/Values?identifier=DataSets." + name + "&format=Binary")
 	if err != nil {
 		return err
 	}
@@ -119,7 +104,7 @@ func (acu *ACU) ModeSet(mode string) error {
 
 // StatusGeneral8100Get fetches the StatusGeneral8100 dataset.
 func (acu *ACU) StatusGeneral8100Get(record *datasets.StatusGeneral8100) error {
-	b, err := acu.getMonitor("/Values?identifier=DataSets.StatusGeneral8100&format=Binary")
+	b, err := acu.get("/Values?identifier=DataSets.StatusGeneral8100&format=Binary")
 	if err != nil {
 		return err
 	}
@@ -163,7 +148,7 @@ func (acu *ACU) ProgramTrackAdd(points []datasets.TimePositionTransfer) error {
 
 // ProgramTrackGet gets the current program track queue.
 func (acu *ACU) ProgramTrackGet(points *[]datasets.TimePositionTransfer) error {
-	b, err := acu.getMonitor("/GetPtStack")
+	b, err := acu.get("/GetPtStack")
 	if err != nil {
 		return err
 	}
