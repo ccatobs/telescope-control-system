@@ -64,6 +64,15 @@ type Command interface {
 	Start(context.Context, *Telescope) (IsDoneFunc, error)
 }
 
+// JSON times are float64 unixtime in seconds,
+// except that small values are relative to now.
+func jsontime(x float64) time.Time {
+	if x < 100000 {
+		x += Time2Unixtime(time.Now())
+	}
+	return Unixtime2Time(x)
+}
+
 /*
  */
 
@@ -97,7 +106,7 @@ type azScanCmd struct {
 	AzimuthRange   [2]float64 `json:"azimuth_range"`
 	Elevation      float64    `json:"elevation"`
 	NumScans       int        `json:"num_scans"`
-	StartTime      time.Time  `json:"start_time"`
+	StartTime      float64    `json:"start_time"`
 	TurnaroundTime float64    `json:"turnaround_time"`
 	Speed          float64    `json:"speed"`
 }
@@ -125,7 +134,8 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 }
 
 func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern := NewAzimuthScanPattern(cmd.StartTime, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, time.Duration(cmd.TurnaroundTime*1e9)*time.Nanosecond)
+	t0 := jsontime(cmd.StartTime)
+	pattern := NewAzimuthScanPattern(t0, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
 	return startPattern(ctx, tel, pattern)
 }
 
@@ -151,7 +161,7 @@ func (cmd trackCmd) Check() error {
 }
 
 func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern, err := NewTrackScanPattern(Unixtime2Time(cmd.StartTime), Unixtime2Time(cmd.StopTime), cmd.RA, cmd.Dec, cmd.Coordsys)
+	pattern, err := NewTrackScanPattern(jsontime(cmd.StartTime), jsontime(cmd.StopTime), cmd.RA, cmd.Dec, cmd.Coordsys)
 	if err != nil {
 		return nil, err
 	}
@@ -159,9 +169,9 @@ func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, erro
 }
 
 type pathCmd struct {
-	Coordsys string
-	Points   [][5]float64
-	Delay    float64
+	Coordsys  string
+	Points    [][5]float64
+	StartTime float64 `json:"start_time"`
 }
 
 func (cmd pathCmd) Check() error {
@@ -170,10 +180,6 @@ func (cmd pathCmd) Check() error {
 	case "ICRS":
 	default:
 		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
-	}
-
-	if cmd.Delay < 0 {
-		return fmt.Errorf("negative delay")
 	}
 
 	if len(cmd.Points) == 0 {
@@ -190,7 +196,7 @@ func (cmd pathCmd) Check() error {
 	}
 
 	// check the first 100 coordinates
-	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points, cmd.Delay)
+	pattern := NewPathScanPattern(jsontime(cmd.StartTime), cmd.Points, cmd.Coordsys)
 	iter := pattern.Iterator()
 	for i := 0; i < 100; i++ {
 		if pattern.Done(iter) {
@@ -211,6 +217,6 @@ func (cmd pathCmd) Check() error {
 }
 
 func (cmd pathCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	pattern := NewPathScanPattern(cmd.Coordsys, cmd.Points, cmd.Delay)
+	pattern := NewPathScanPattern(jsontime(cmd.StartTime), cmd.Points, cmd.Coordsys)
 	return startPattern(ctx, tel, pattern)
 }

@@ -47,7 +47,7 @@ curl 'localhost:5600/azimuth-scan' -d@- <<___
   "azimuth_range": [110,130],
   "elevation": 60,
   "num_scans": 20,
-  "start_time": "2019-03-16T20:56:30Z",
+  "start_time": 1615586380,
   "turnaround_time": 30,
   "speed": 0.8
 }
@@ -74,12 +74,13 @@ Follow a path of points.
 ```sh
 curl 'localhost:5600/path' -d@- <<___
 {
+    "start_time": 1615586629,
     "coordsys": "ICRS",
     "points": [
-        [1555190103, 103, -33],
-        [1555190166, 106, -35],
-        [1555190228, 109, -37],
-        [1555190288, 111, -39]
+        [0,   103, -33, 0.05, -0.05],
+        [60,  106, -36, 0.05, -0.05],
+        [120, 109, -39, 0.05, -0.05],
+        [180, 112, -42, 0.05, -0.05]
     ]
 }
 ___
