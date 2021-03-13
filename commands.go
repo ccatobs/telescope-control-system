@@ -80,7 +80,20 @@ func (cmd moveToCmd) Check() error {
 	return checkAzEl(cmd.Azimuth, cmd.Elevation, 0, 0)
 }
 
+func estimateMoveTime(az0, az1, el0, el1 float64) time.Duration {
+	s, c := math.Sincos((az1 - az0) * math.Pi / 180)
+	daz := math.Abs(math.Atan2(s, c) * 180 / math.Pi)
+	daz = math.Max(daz, 360-daz) // might have to take the long way around (XXX:refine this estimate)
+	taz := daz/azimuthSpeedMax + azimuthSpeedMax/azimuthAccelMax + azimuthAccelMax/azimuthJerkMax
+	tel := math.Abs(el1-el0)/elevationSpeedMax + elevationSpeedMax/elevationAccelMax + elevationAccelMax/elevationJerkMax
+	return Seconds2Duration(1.1 * math.Max(taz, tel))
+}
+
 func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	t0 := time.Now()
+	rec := tel.Status()
+	timeout := estimateMoveTime(cmd.Azimuth, rec.AzimuthCurrentPosition, cmd.Elevation, rec.ElevationCurrentPosition)
+	log.Printf("estimated move time: %g secs", timeout.Seconds())
 	err := tel.MoveTo(cmd.Azimuth, cmd.Elevation)
 	isDone := func(tel *Telescope) (bool, error) {
 		rec := tel.Status()
@@ -90,6 +103,9 @@ func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 			(math.Abs(rec.ElevationCurrentPosition-rec.ElevationCommandedPosition) < positionTol) &&
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
 			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
+		if !done && time.Since(t0) > timeout {
+			return false, fmt.Errorf("move command timed out")
+		}
 		return done, nil
 	}
 	return isDone, err
