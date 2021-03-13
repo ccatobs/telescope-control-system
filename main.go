@@ -73,21 +73,21 @@ func main() {
 	}
 
 	var tel_pos = []MeasurementFloat{
-		MeasurementFloat{
+		{
 			Name:        "Elevation",
 			Description: "Telescope height above sea level",
 			Unit:        "meters",
 			Value:       CCATP_ELEVATION_METERS,
 			Created:     time.Now(),
 		},
-		MeasurementFloat{
+		{
 			Name:        "Latitude",
 			Description: "Telescope latitude",
 			Unit:        "degrees",
 			Value:       CCATP_LATITUDE_DEG,
 			Created:     time.Now(),
 		},
-		MeasurementFloat{
+		{
 			Name:        "Longitude",
 			Description: "Telescope longitude with positive east",
 			Unit:        "degrees",

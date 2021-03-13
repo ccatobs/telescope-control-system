@@ -28,11 +28,6 @@ const (
 	elevationJerkMax  = 6.0 // [deg/sec^3]
 )
 
-var (
-	errAzimuthOutOfRange   = fmt.Errorf("azimuth out of range [%g,%g]", azimuthMin, azimuthMax)
-	errElevationOutOfRange = fmt.Errorf("elevation out of range [%g,%g]", elevationMin, elevationMax)
-)
-
 func checkAzEl(az, el, vaz, vel float64) error {
 	if az < azimuthMin || az > azimuthMax {
 		error := fmt.Sprintf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)

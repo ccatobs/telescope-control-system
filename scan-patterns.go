@@ -25,15 +25,15 @@ type ScanPatternIterator struct {
 
 // A RepeatingScanPattern executes an az,el pattern multiple times.
 type RepeatingScanPattern struct {
-	index, n, m int
-	azs         []float64
-	els         []float64
-	vazs        []float64
-	vels        []float64
-	fazs        []int8
-	fels        []int8
-	dts         []time.Duration
-	start       time.Time
+	n, m  int
+	azs   []float64
+	els   []float64
+	vazs  []float64
+	vels  []float64
+	fazs  []int8
+	fels  []int8
+	dts   []time.Duration
+	start time.Time
 }
 
 func (scan RepeatingScanPattern) Iterator() *ScanPatternIterator {
