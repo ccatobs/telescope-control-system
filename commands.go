@@ -52,7 +52,7 @@ func checkAzEl(az, el, vaz, vel float64) error {
 	return nil
 }
 
-type IsDoneFunc func(*datasets.StatusGeneral8100) (bool, error)
+type IsDoneFunc func(*Telescope) (bool, error)
 
 type Command interface {
 	Check() error
@@ -82,7 +82,8 @@ func (cmd moveToCmd) Check() error {
 
 func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
 	err := tel.MoveTo(cmd.Azimuth, cmd.Elevation)
-	isDone := func(rec *datasets.StatusGeneral8100) (bool, error) {
+	isDone := func(tel *Telescope) (bool, error) {
+		rec := tel.Status()
 		done := (rec.AzimuthMode == datasets.AzimuthModePreset) &&
 			(rec.ElevationMode == datasets.ElevationModePreset) &&
 			(math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthCommandedPosition) < positionTol) &&
@@ -118,8 +119,9 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 			log.Print(err)
 		}
 	}()
-	isDone := func(rec *datasets.StatusGeneral8100) (bool, error) {
+	isDone := func(tel *Telescope) (bool, error) {
 		// XXX:racy
+		rec := tel.Status()
 		done := (rec.QtyOfFreeProgramTrackStackPositions == maxFreeProgramTrackStack-1) && // last point remains on the stack
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
 			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)

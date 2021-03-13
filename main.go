@@ -15,7 +15,7 @@ import (
 
 const (
 	// poll the ACU status at 1 Hz
-	acuPollDuration = 1000 * time.Millisecond
+	statusUpdateDuration = 1000 * time.Millisecond
 
 	// max time waiting to queue command
 	commandBusyTimeout = 100 * time.Millisecond
@@ -107,7 +107,6 @@ func main() {
 
 	// main loop
 	go func() {
-		var rec datasets.StatusGeneral8100
 		for {
 			// wait for command
 			var cmd Command
@@ -116,8 +115,8 @@ func main() {
 				select {
 				case cmd = <-cmds:
 					break waitForCmdLoop
-				case <-time.After(acuPollDuration):
-					err := acu.StatusGeneral8100Get(&rec)
+				case <-time.After(statusUpdateDuration):
+					err := tel.UpdateStatus()
 					if err != nil {
 						log.Print(err)
 					}
@@ -133,8 +132,8 @@ func main() {
 			}
 			log.Printf("got command: %s", desc)
 
-			if !rec.Remote {
-				log.Print("ignoring command, ACU not in remote mode")
+			if !tel.Ready() {
+				log.Print("ignoring command, telescope not ready")
 				continue
 			}
 
@@ -150,12 +149,12 @@ func main() {
 			// wait for command to finish
 			for done := false; !done; {
 				select {
-				case <-time.After(acuPollDuration):
-					err = acu.StatusGeneral8100Get(&rec)
+				case <-time.After(statusUpdateDuration):
+					err = tel.UpdateStatus()
 					if err != nil {
 						break // select statement
 					}
-					done, err = isDone(&rec)
+					done, err = isDone(tel)
 				case c := <-abort:
 					log.Print("aborting")
 					c <- true

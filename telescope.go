@@ -13,6 +13,7 @@ import (
 type Telescope struct {
 	acu      *ACU
 	pointing Pointing
+	rec      datasets.StatusGeneral8100
 }
 
 func NewTelescope(acu *ACU) *Telescope {
@@ -20,6 +21,18 @@ func NewTelescope(acu *ACU) *Telescope {
 		acu:      acu,
 		pointing: NewPointing(),
 	}
+}
+
+func (t Telescope) UpdateStatus() error {
+	return t.acu.StatusGeneral8100Get(&t.rec)
+}
+
+func (t Telescope) Status() *datasets.StatusGeneral8100 {
+	return &t.rec
+}
+
+func (t Telescope) Ready() bool {
+	return t.rec.Remote
 }
 
 func (t Telescope) Stop() error {
