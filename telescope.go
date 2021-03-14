@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"math"
 	"time"
 
 	"github.com/ccatp/antenna-control-unit/datasets"
@@ -31,8 +33,19 @@ func (t Telescope) Status() *datasets.StatusGeneral8100 {
 	return &t.rec
 }
 
-func (t Telescope) Ready() bool {
-	return t.rec.Remote
+func statusTime(t time.Time) (uint32, float64) {
+	doy, tod := VertexTime(t)
+	return uint32(t.UTC().Year()), float64(doy) + tod/86400
+}
+
+func (t Telescope) Ready() error {
+	if !t.rec.Remote {
+		return fmt.Errorf("ACU not in remote mode")
+	}
+	if y, d := statusTime(time.Now()); t.rec.Year != y || math.Abs(t.rec.Time-d) > 1e-4 {
+		return fmt.Errorf("ACU & TCS clock mismatch")
+	}
+	return nil
 }
 
 func (t Telescope) Stop() error {

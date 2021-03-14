@@ -132,8 +132,8 @@ func main() {
 			}
 			log.Printf("got command: %s", desc)
 
-			if !tel.Ready() {
-				log.Print("ignoring command, telescope not ready")
+			if err := tel.Ready(); err != nil {
+				log.Print(err)
 				continue
 			}
 
