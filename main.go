@@ -64,6 +64,16 @@ func main() {
 	acu := NewACU(acuAddr)
 	tel := NewTelescope(acu)
 
+	// report immediately any ACU problems
+	err := tel.UpdateStatus()
+	if err != nil {
+		log.Print(err)
+	}
+	err = tel.Ready()
+	if err != nil {
+		log.Print(err)
+	}
+
 	type MeasurementFloat struct {
 		Name        string
 		Description string
