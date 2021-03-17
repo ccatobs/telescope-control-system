@@ -106,7 +106,7 @@ ___
 Clear the current program track from telescope
 
 ```sh
-curl  'localhost:5600/clear-track"
+curl  -X POST 'localhost:5600/clear-track"
 ```
 
 

@@ -236,12 +236,12 @@ func main() {
 
 	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
 		var statusCode int
-		log.Print("clearing program track stack")
-		if req.Method != "GET" {
-			err := fmt.Errorf("method not GET")
+		if req.Method != "POST" {
+			err := fmt.Errorf("method not POST")
 			jsonResponse(w, err, http.StatusMethodNotAllowed)
 			return
 		}
+		log.Print("clearing program track stack")
 		err := acu.ProgramTrackClear()
 		if err != nil {
 			log.Print(err)
