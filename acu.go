@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/ccatp/antenna-control-unit/datasets"
@@ -34,15 +35,15 @@ func (acu *ACU) do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	b, err := ioutil.ReadAll(resp.Body)
 	defer resp.Body.Close()
+	b, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf(resp.Status)
 	}
-	if string(b[:7]) == "Failed:" {
+	if strings.HasPrefix(string(b), "Failed:") {
 		return nil, fmt.Errorf(string(b))
 	}
 	return b, nil
