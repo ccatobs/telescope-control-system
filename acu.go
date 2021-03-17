@@ -34,12 +34,13 @@ func (acu *ACU) do(req *http.Request) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(resp.Status)
-	}
 	b, err := ioutil.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	if err != nil {
 		return nil, err
+	}
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf(resp.Status)
 	}
 	if string(b[:7]) == "Failed:" {
 		return nil, fmt.Errorf(string(b))
