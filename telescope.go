@@ -26,6 +26,7 @@ func NewTelescope(acu *ACU) *Telescope {
 }
 
 func (t *Telescope) UpdateStatus() error {
+	t.rec.Year = 0 // invalidate current status
 	return t.acu.StatusGeneral8100Get(&t.rec)
 }
 
@@ -35,15 +36,21 @@ func (t Telescope) Status() *datasets.StatusGeneral8100 {
 
 func statusTime(t time.Time) (uint32, float64) {
 	doy, tod := VertexTime(t)
-	return uint32(t.UTC().Year()), float64(doy) + tod/86400
+	return uint32(t.UTC().Year()), float64(doy) + tod/(24*60*60)
 }
 
 func (t Telescope) Ready() error {
+	if t.rec.Year == 0 {
+		return fmt.Errorf("can't contact ACU")
+	}
+	y, d := statusTime(time.Now())
+	dy := t.rec.Year - y
+	dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
+	if dy != 0 || dt > 2 {
+		return fmt.Errorf("ACU & TCS clock mismatch: %d years, %g seconds", dy, dt)
+	}
 	if !t.rec.Remote {
 		return fmt.Errorf("ACU not in remote mode")
-	}
-	if y, d := statusTime(time.Now()); t.rec.Year != y || math.Abs(t.rec.Time-d) > 1e-4 {
-		return fmt.Errorf("ACU & TCS clock mismatch")
 	}
 	return nil
 }
