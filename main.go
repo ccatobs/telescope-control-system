@@ -206,7 +206,7 @@ func main() {
 		jsonResponse(w, err, statusCode)
 	})
 
-	mux.HandleFunc("/acu-status", func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("/acu/status", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" {
 			err := fmt.Errorf("method not GET")
 			jsonResponse(w, err, http.StatusMethodNotAllowed)
