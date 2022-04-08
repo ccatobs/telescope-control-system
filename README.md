@@ -15,7 +15,7 @@ go build
 ## Running
 
 ```
-export CCATP_ACU_ADDR=10.1.1.1:8100
+export FYST_ACU_ADDR=10.1.1.1:8100
 ./telescope-control-system
 ```
 

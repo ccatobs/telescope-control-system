@@ -58,8 +58,8 @@ func getenv(key, def string) string {
 }
 
 func main() {
-	acuAddr := getenv("CCATP_ACU_ADDR", "172.16.5.95:8100")
-	apiAddr := getenv("CCATP_TCS_ADDR", ":5600")
+	acuAddr := getenv("FYST_ACU_ADDR", "172.16.5.95:8100")
+	apiAddr := getenv("FYST_TCS_ADDR", ":5600")
 
 	acu := NewACU(acuAddr)
 	tel := NewTelescope(acu)
@@ -87,21 +87,21 @@ func main() {
 			Name:        "Elevation",
 			Description: "Telescope height above sea level",
 			Unit:        "meters",
-			Value:       CCATP_ELEVATION_METERS,
+			Value:       FYST_ELEVATION_METERS,
 			Created:     time.Now(),
 		},
 		{
 			Name:        "Latitude",
 			Description: "Telescope latitude",
 			Unit:        "degrees",
-			Value:       CCATP_LATITUDE_DEG,
+			Value:       FYST_LATITUDE_DEG,
 			Created:     time.Now(),
 		},
 		{
 			Name:        "Longitude",
 			Description: "Telescope longitude with positive east",
 			Unit:        "degrees",
-			Value:       CCATP_LONGITUDE_EAST_DEG,
+			Value:       FYST_LONGITUDE_EAST_DEG,
 			Created:     time.Now(),
 		},
 	}

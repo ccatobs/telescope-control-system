@@ -12,11 +12,11 @@ import (
 
 const (
 	// telescope coordinates
-	CCATP_ELEVATION_METERS   = 5611.8
-	CCATP_LATITUDE_DEG       = -22.985639 // -22°59'08.30"
-	CCATP_LATITUDE_RAD       = CCATP_LATITUDE_DEG * math.Pi / 180
-	CCATP_LONGITUDE_EAST_DEG = -67.740278 // -67°44'25.00"
-	CCATP_LONGITUDE_EAST_RAD = CCATP_LONGITUDE_EAST_DEG * math.Pi / 180
+	FYST_ELEVATION_METERS   = 5611.8
+	FYST_LATITUDE_DEG       = -22.985639 // -22°59'08.30"
+	FYST_LATITUDE_RAD       = FYST_LATITUDE_DEG * math.Pi / 180
+	FYST_LONGITUDE_EAST_DEG = -67.740278 // -67°44'25.00"
+	FYST_LONGITUDE_EAST_RAD = FYST_LONGITUDE_EAST_DEG * math.Pi / 180
 
 	// Julian date for unixtime = 0
 	UNIX_JD_EPOCH = 2440587.5
@@ -49,9 +49,9 @@ func AzEl2RADec(unixtime, az, el float64) (float64, float64, error) {
 		C.double(utc1),           // UTC as a 2-part...
 		C.double(utc2),           // ...quasi Julian Date (Notes 3,4)
 		C.double(dut1),           // UT1-UTC (seconds, Note 5)
-		CCATP_LONGITUDE_EAST_RAD, // longitude (radians, east +ve, Note 6)
-		CCATP_LATITUDE_RAD,       // geodetic latitude (radians, Note 6)
-		CCATP_ELEVATION_METERS,   // height above ellipsoid (m, geodetic Notes 6,8)
+		FYST_LONGITUDE_EAST_RAD, // longitude (radians, east +ve, Note 6)
+		FYST_LATITUDE_RAD,       // geodetic latitude (radians, Note 6)
+		FYST_ELEVATION_METERS,   // height above ellipsoid (m, geodetic Notes 6,8)
 		C.double(xp),             // polar motion coordinates (radians, Note 7)
 		C.double(yp),             // polar motion coordinates (radians, Note 7)
 		0,                        // pressure at the observer (hPa = mB, Note 8)
@@ -98,9 +98,9 @@ func RADec2AzEl(unixtime, ra, dec float64) (float64, float64, error) {
 		C.double(utc1),           // UTC as a 2-part...
 		C.double(utc2),           // ...quasi Julian Date (Notes 3-4)
 		C.double(dut1),           // UT1-UTC (seconds, Note 5)
-		CCATP_LONGITUDE_EAST_RAD, // longitude (radians, east +ve, Note 6)
-		CCATP_LATITUDE_RAD,       // latitude (geodetic, radians, Note 6)
-		CCATP_ELEVATION_METERS,   // height above ellipsoid (m, geodetic, Notes 6,8)
+		FYST_LONGITUDE_EAST_RAD, // longitude (radians, east +ve, Note 6)
+		FYST_LATITUDE_RAD,       // latitude (geodetic, radians, Note 6)
+		FYST_ELEVATION_METERS,   // height above ellipsoid (m, geodetic, Notes 6,8)
 		C.double(xp),             // polar motion coordinates (radians, Note 7)
 		C.double(yp),             // polar motion coordinates (radians, Note 7)
 		0,                        // pressure at the observer (hPa = mB, Note 8)
