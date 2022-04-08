@@ -7,7 +7,7 @@ mkdir "$prefix/src"
 cd "$prefix/src"
 
 # liberfa
-erfa_version="1.7.2"
+erfa_version="1.7.3"
 erfa_tarball="erfa-${erfa_version}.tar.gz"
 curl -LO "https://github.com/liberfa/erfa/releases/download/v${erfa_version}/${erfa_tarball}"
 tar -xzf "$erfa_tarball"
