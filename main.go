@@ -301,8 +301,16 @@ func main() {
 				goto respond
 			}
 		} else {
-			err = fmt.Errorf("method not POST")
-			statusCode = http.StatusMethodNotAllowed
+			// XXX:TODO: hacky
+			endpoint := req.URL.Path
+			switch endpoint {
+			case "/azimuth-scan", "/move-to", "/path", "/track":
+				err = fmt.Errorf("method not POST")
+				statusCode = http.StatusMethodNotAllowed
+			default:
+				err = fmt.Errorf("bad endpoint: %s", endpoint)
+				statusCode = http.StatusNotFound
+			}
 			goto respond
 		}
 
