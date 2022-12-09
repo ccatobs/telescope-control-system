@@ -19,6 +19,18 @@ export FYST_ACU_ADDR=10.1.1.1:8100
 ./telescope-control-system
 ```
 
+
+## Docker
+### Building
+```sh
+docker build --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" -t tcs .
+```
+
+### Running
+```sh
+docker run --network host -e FYST_ACU_ADDR=127.0.0.1:8100 tcs
+```
+
 ## Commands
 
 ### `/abort`

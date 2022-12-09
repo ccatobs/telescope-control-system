@@ -1,7 +1,10 @@
 FROM golang:1
 WORKDIR /go/src/github.com/ccatp/telescope-control-system
 
-ADD github_ssh_key_ed25519 /root/.ssh/id_ed25519
+RUN mkdir /root/.ssh/
+#COPY ~/.ssh/id_rsa /root/.ssh/id_ed25519
+ARG SSH_PRIVATE_KEY
+RUN echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
 RUN chmod 700 /root/.ssh/id_ed25519
 RUN echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
 RUN git config --global url.ssh://git@github.com/ccatp/.insteadOf https://github.com/ccatp/
