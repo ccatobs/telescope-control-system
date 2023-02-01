@@ -12,13 +12,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-
-      - name: SSH key for private repo access
-        run: echo "${{ secrets.GH_READ_ACCESS_SSH_KEY_ED25519 }}" > github_ssh_key_ed25519
+        uses: actions/checkout@v3
 
       - name: Build docker image
-        run: docker build --tag "$GHP_TAG" .
+        run: docker build --build-arg SSH_PRIVATE_KEY="${{ secrets.GH_READ_ACCESS_SSH_KEY_ED25519 }}" --tag "$GHP_TAG" .
 
       - name: Login to GitHub Packages
         run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login docker.pkg.github.com -u "${{ github.actor }}" --password-stdin

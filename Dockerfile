@@ -2,7 +2,6 @@ FROM golang:1
 WORKDIR /go/src/github.com/ccatp/telescope-control-system
 
 RUN mkdir /root/.ssh/
-#COPY ~/.ssh/id_rsa /root/.ssh/id_ed25519
 ARG SSH_PRIVATE_KEY
 RUN echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
 RUN chmod 700 /root/.ssh/id_ed25519
