@@ -15,7 +15,8 @@ go build
 ## Running
 
 ```
-export FYST_ACU_ADDR=10.1.1.1:8100
+export FYST_ACU_HOST=10.1.1.1
+export FYST_ACU_PORT=8100
 ./telescope-control-system
 ```
 
@@ -39,6 +40,19 @@ Abort the current command.
 
 ```sh
 curl -X POST 'http://localhost:5600/abort'
+```
+
+### `/acu/position-broadcast`
+
+Enable the position broadcast UDP stream, or change where it's sent to.
+
+```sh
+curl -X POST 'localhost:5600/acu/position-broadcast' -d@- <<___
+{
+    "destination_host": "host.name",
+    "destination_port": 100000
+}
+___
 ```
 
 ### `/acu/status`
@@ -65,6 +79,7 @@ curl 'localhost:5600/azimuth-scan' -d@- <<___
 }
 ___
 ```
+
 
 ### `/move-to`
 

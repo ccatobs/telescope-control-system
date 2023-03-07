@@ -8,6 +8,8 @@ import (
 	"io/ioutil"
 	"mime/multipart"
 	"net/http"
+	"net/url"
+	"strconv"
 	"strings"
 	"time"
 
@@ -16,14 +18,18 @@ import (
 
 // ACU manages communication with the ACU.
 type ACU struct {
-	Host   string
-	client *http.Client
+	Addr      string
+	AdminAddr string
+	client    *http.Client
 }
 
 // NewACU returns a new connection to host.
-func NewACU(host string) *ACU {
+func NewACU(host, port, adminPort string) *ACU {
+	addr := fmt.Sprintf("%s:%s", host, port)
+	adminAddr := fmt.Sprintf("%s:%s", host, adminPort)
 	return &ACU{
-		Host: host,
+		Addr:      addr,
+		AdminAddr: adminAddr,
 		client: &http.Client{
 			Timeout: 500 * time.Millisecond,
 		},
@@ -51,8 +57,16 @@ func (acu *ACU) do(req *http.Request) ([]byte, error) {
 
 func (acu *ACU) newRequest(method, path string, body io.Reader) (*http.Request, error) {
 	req, err := http.NewRequest(method, path, body)
-	req.Host = acu.Host
-	req.URL.Host = acu.Host
+	req.Host = acu.Addr
+	req.URL.Host = acu.Addr
+	req.URL.Scheme = "http"
+	return req, err
+}
+
+func (acu *ACU) newAdminRequest(method, path string, body io.Reader) (*http.Request, error) {
+	req, err := http.NewRequest(method, path, body)
+	req.Host = acu.AdminAddr
+	req.URL.Host = acu.AdminAddr
 	req.URL.Scheme = "http"
 	return req, err
 }
@@ -71,6 +85,16 @@ func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", contentType)
+	return acu.do(req)
+}
+
+func (acu *ACU) postAdminValues(path string, values url.Values) ([]byte, error) {
+	body := strings.NewReader(values.Encode())
+	req, err := acu.newAdminRequest("POST", path, body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	return acu.do(req)
 }
 
@@ -190,4 +214,32 @@ func (acu *ACU) SunAvoidanceDisable() error {
 func (acu *ACU) SunAvoidanceEnable() error {
 	_, err := acu.get("/Command?command=SetSunAvoidance&parameter=Enable")
 	return err
+}
+
+// PositionBroadcastEnable enables the 200Hz position broadcast UDP stream.
+func (acu *ACU) PositionBroadcastEnable(host string, port int) error {
+	data := url.Values{}
+	data.Set("name", "Destination")
+	data.Set("value", host)
+	_, err := acu.postAdminValues("/?Module=Services.PositionBroadcast&Chapter=1", data)
+	if err != nil {
+		return err
+	}
+
+	data = url.Values{}
+	data.Set("name", "Port")
+	data.Set("value", strconv.Itoa(port))
+	_, err = acu.postAdminValues("/?Module=Services.PositionBroadcast&Chapter=1", data)
+	if err != nil {
+		return err
+	}
+
+	data = url.Values{}
+	data.Set("Command", "Enable")
+	_, err = acu.postAdminValues("/?Module=Services.PositionBroadcast&Chapter=3", data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

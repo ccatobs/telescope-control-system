@@ -71,6 +71,26 @@ func jsontime(x float64) time.Time {
 /*
  */
 
+type enablePositionBroadcastCmd struct {
+	Host string `json:"destination_host"`
+	Port int    `json:"destination_port"`
+}
+
+func (cmd enablePositionBroadcastCmd) Check() error {
+	if cmd.Port < 1024 || cmd.Port > 65535 {
+		return fmt.Errorf("invalid port number %d", cmd.Port)
+	}
+	return nil
+}
+
+func (cmd enablePositionBroadcastCmd) Start(ctx context.Context, t *Telescope) (IsDoneFunc, error) {
+	err := t.EnablePositionBroadcast(cmd.Host, cmd.Port)
+	return func(*Telescope) (bool, error) { return true, nil }, err
+}
+
+/*
+ */
+
 type moveToCmd struct {
 	Azimuth   float64
 	Elevation float64

@@ -55,6 +55,10 @@ func (t Telescope) Ready() error {
 	return nil
 }
 
+func (t Telescope) EnablePositionBroadcast(host string, port int) error {
+	return t.acu.PositionBroadcastEnable(host, port)
+}
+
 func (t Telescope) Stop() error {
 	return t.acu.ModeSet("Stop")
 }

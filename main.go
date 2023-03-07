@@ -58,10 +58,12 @@ func getenv(key, def string) string {
 }
 
 func main() {
-	acuAddr := getenv("FYST_ACU_ADDR", "172.16.5.95:8100")
+	acuHost := getenv("FYST_ACU_HOST", "172.16.5.95")
+	acuPort := getenv("FYST_ACU_PORT", "8100")
+	acuAdminPort := getenv("FYST_ACU_ADMIN_PORT", "8080")
 	apiAddr := getenv("FYST_TCS_ADDR", ":5600")
 
-	acu := NewACU(acuAddr)
+	acu := NewACU(acuHost, acuPort, acuAdminPort)
 	tel := NewTelescope(acu)
 
 	// report immediately any ACU problems
@@ -275,6 +277,10 @@ func main() {
 			dec.DisallowUnknownFields()
 			endpoint := req.URL.Path
 			switch endpoint {
+			case "/acu/position-broadcast":
+				var x enablePositionBroadcastCmd
+				err = dec.Decode(&x)
+				cmd = x
 			case "/azimuth-scan":
 				var x azScanCmd
 				err = dec.Decode(&x)
@@ -304,7 +310,7 @@ func main() {
 			// XXX:TODO: hacky
 			endpoint := req.URL.Path
 			switch endpoint {
-			case "/azimuth-scan", "/move-to", "/path", "/track":
+			case "/azimuth-scan", "/enable-udp-stream", "/move-to", "/path", "/track":
 				err = fmt.Errorf("method not POST")
 				statusCode = http.StatusMethodNotAllowed
 			default:
