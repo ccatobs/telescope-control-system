@@ -6,7 +6,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/ccatp/antenna-control-unit/datasets"
+	"github.com/ccatobs/antenna-control-unit/datasets"
 )
 
 // A ScanPattern represents an abstract scan pattern generator.

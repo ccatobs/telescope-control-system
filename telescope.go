@@ -7,7 +7,7 @@ import (
 	"math"
 	"time"
 
-	"github.com/ccatp/antenna-control-unit/datasets"
+	"github.com/ccatobs/antenna-control-unit/datasets"
 )
 
 // Telescope provides a higher-level interface to the ACU.
