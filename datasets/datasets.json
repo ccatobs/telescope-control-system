@@ -1,0 +1,1468 @@
+{
+  "CmdPointingCorrection": [
+    {
+      "name": "Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Year",
+      "type": "unsigned int (4 bytes)"
+    },
+    {
+      "name": "Systematic error model (SPEM) on",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Tiltmeter Az correction on",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Tiltmeter El correction on",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "RF refraction correction on",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Spare 5",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Spare 6",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Spare 7",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Spare 8",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "SPEM correction AZ",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "SPEM correction EL",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Tiltmeter  Az correction AZ",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Tiltmeter  Az correction EL",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Tiltmeter El correction AZ",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Tiltmeter El correction EL",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "RF refraction correction AZ",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "RF refraction correction EL",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    }
+  ],
+  "CmdSectorScanParameters": [
+    {
+      "name": "Starting position Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "End position Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Line distance Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Scan velocity Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg/s"
+    },
+    {
+      "name": "Starting position Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "End position Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Line distance Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Scan velocity Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg/s"
+    },
+    {
+      "name": "Position Window Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Position Window Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    }
+  ],
+  "CmdSPEMParameter": [
+    {
+      "name": "Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Year",
+      "type": "unsigned int (4 bytes)"
+    },
+    {
+      "name": "Parameter IA",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter IE",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter TFC",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter TF",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter TFS",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter TFEC",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter TFE",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter TFES",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AN",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AW",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AN2",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AW2",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter CA",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter NPAE",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AES",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AEC",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AES2",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter AEC2",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter EES",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter EEC",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter EES2",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter EEC2",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter NRX",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter NRY",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter LELA",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "Parameter LELE",
+      "type": "double (8 bytes)",
+      "unit": "mdeg"
+    },
+    {
+      "name": "LEL velocity",
+      "type": "double (8 bytes)",
+      "unit": "deg/s"
+    }
+  ],
+  "CmdStarTrackTransfer": [
+    {
+      "name": "Name",
+      "type": "std::string (32 bytes)"
+    },
+    {
+      "name": "Right Ascension",
+      "type": "RightAscension (8 bytes)"
+    },
+    {
+      "name": "Declination",
+      "type": "Declination (8 bytes)"
+    }
+  ],
+  "CmdTimePositionOffsetTransfer": [
+    {
+      "name": "Time Offset",
+      "type": "double (8 bytes)",
+      "unit": "s"
+    },
+    {
+      "name": "Azimuth Offset",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Elevation Offset",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    }
+  ],
+  "CmdTimePositionTransfer": [
+    {
+      "name": "Last Upload Name",
+      "type": "std::string (48 bytes)"
+    },
+    {
+      "name": "Last Upload Time",
+      "type": "std::string (32 bytes)"
+    },
+    {
+      "name": "Last Upload Total Entries",
+      "type": "int (4 bytes)"
+    },
+    {
+      "name": "Last Upload Valid Entries",
+      "type": "int (4 bytes)"
+    },
+    {
+      "name": "Last Upload Invalid Entries",
+      "type": "int (4 bytes)"
+    }
+  ],
+  "CmdTwoLineTransfer": [
+    {
+      "name": "Name of Spacecraft",
+      "type": "std::string (32 bytes)"
+    },
+    {
+      "name": "Line 1",
+      "type": "std::string (70 bytes)"
+    },
+    {
+      "name": "Line 2",
+      "type": "std::string (70 bytes)"
+    },
+    {
+      "name": "AOS Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "AOS Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "AOS Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "LOS Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "LOS Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "LOS Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "MAX Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "MAX Azimuth",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "MAX Elevation",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    }
+  ],
+  "CmdWeatherStation": [
+    {
+      "name": "Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Year",
+      "type": "unsigned int (4 bytes)"
+    },
+    {
+      "name": "Temperature",
+      "type": "double (8 bytes)",
+      "unit": "deg C"
+    },
+    {
+      "name": "RelativeHumidity",
+      "type": "double (8 bytes)",
+      "unit": "%"
+    },
+    {
+      "name": "AirPressure",
+      "type": "double (8 bytes)",
+      "unit": "hPa"
+    }
+  ],
+  "Status3rdAxis": [
+    {
+      "name": "3rd axis axis in stow position",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "3rd axis stow pins - status",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Not Available": 0,
+        "Any Moving": 1,
+        "All Inserted": 2,
+        "All Retracted": 3,
+        "Failure": 4
+      }
+    },
+    {
+      "name": "3rd axis summary fault",
+      "type": "FAULT (1 byte)"
+    }
+  ],
+  "StatusDetailedFaults": [
+    {
+      "name": "PLC Communication (TCP)",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 1 - Servo Drive Cabinet",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 2 - AZ Drives 1+2",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 3 - Az Drives 3+4",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 4 - El Drives",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 5 - Staircase Lower End",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 6 - Elevator Access",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 7 - Instrument Space 1, Co-Rotator",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 8 - EL Housing, Mirror Area",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 9 - MPD",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "EStop 10 - OCS",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "E-Stop PCU",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "E-Stop Device",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Drive cabinet door",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Hoist storage container",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Access Hatch Interlock - Support Cone",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Yoke A Door Warning - Outside to Stairway",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Stairway Door Warning - Yoke Traverse",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Yoke Traverse: Electronics space hoist position",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Ladder Interlock - Yoke Traverse",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Yoke A Door Interlock - 3rd Floor",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Floor Hatch Interlock - Instrument Space 1",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Material Door Warning - Instrument Space",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Yoke A Door Interlock - 2nd Floor",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Yoke B Door Warning - Traverse to 1st Floor",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Access Hatch Interlock - Roof Yoke B",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Crane on",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Safe",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Power Failure (latched)",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Lightning Surge Arrester",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Power Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - 24V Power Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Breaker Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Cabinet Over-Temperature",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - ACU IF Error",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Profinet Error",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Cabinet Under-Temperature",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Ambient-Temperature too low",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Comoving Shield removed",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Fan Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Drive Power Off",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Key Switch Safe Override",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Key Switch Bypass Emergency Limits",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - PCU Operation",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Warn Horn sounding",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PLC General - Warn Horn passive",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Encoder Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Round Switch Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Second Emergency Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Emergency Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - PreLimit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - PreLimit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Emergency Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Second Emergency Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Soft-Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Soft-PreLimit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Soft-PreLimit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Soft-Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Tacho Failure",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "Az - ACU immobile",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "Az - CAN bus failure Amplifier 1",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "Az - CAN bus failure Amplifier 2",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "Az - CAN bus failure Amplifier 3",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "Az - CAN bus failure Amplifier 4",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "Az - Computer Disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Axis Disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Servo Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Motion Error",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Brake1 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Brake2 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Brake3 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Brake4 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Breaker Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Amplifier1 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Amplifier2 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Amplifier3 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Amplifier4 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Motor1 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Motor2 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Motor3 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Motor4 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Aux1 Mode Selected",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Aux2 Mode Selected",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Overspeed",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox1 Low Oil Level",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox1 Heater Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox2 Low Oil Level",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox2 Heater Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox3 Low Oil Level",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox3 Heater Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox4 Low Oil Level",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Gearbox4 Heater Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Amplifier Power Cycle Interlock",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - DC Bus1 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - DC Bus2 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Secondary Encoder Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Regen. Resistor1 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Regen. Resistor2 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Regen. Resistor3 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Az - Regen. Resistor4 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Encoder Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Second Emergency Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Emergency Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - PreLimit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - PreLimit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Emergency Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Second Emergency Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Soft-Limit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Soft-PreLimit Up/CW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Soft-PreLimit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Soft-Limit Down/CCW",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Tacho Failure",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "El - ACU immobile",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "El - CAN bus failure Amplifier 1",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "El - CAN bus failure Amplifier 2",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    },
+    {
+      "name": "El - Computer Disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Axis Disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Servo Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Motion Error",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Brake1 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Brake2 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Breaker Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Amplifier1 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Amplifier2 Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Motor1 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Motor2 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Aux1 Mode Selected",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Aux2 Mode Selected",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Overspeed",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Gearbox1 Low Oil Level",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Gearbox1 Heater Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Gearbox2 Low Oil Level",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Gearbox2 Heater Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Amplifier Power Cycle Interlock",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Secondary Encoder Failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Regen. Resistor1 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "El - Regen. Resistor2 OverTemp",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "General ACU fan failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "General ACU over temperature",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "General Time Error",
+      "type": "FAULT (1 byte)",
+      "unit": "BitFault"
+    }
+  ],
+  "StatusExtra8100": [
+    {
+      "name": "Azimuth position command",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Azimuth current acceleration",
+      "type": "double (8 bytes)",
+      "unit": "deg/s^2"
+    },
+    {
+      "name": "Azimuth Combined Autotrack Integration Factor",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Azimuth torque bias mode",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Off": 0,
+        "ConstantTorqueBias": 1,
+        "FullTorqueBias": 2
+      }
+    },
+    {
+      "name": "Azimuth overcurrent motor 1",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth overcurrent motor 2",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth overcurrent motor 3",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth overcurrent motor 4",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth oscillation status",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth oscillation warning",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth oscillation failue",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth profiler active",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth profiler running",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth interlock alarm",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth torque",
+      "type": "double (8 bytes)",
+      "unit": "%"
+    },
+    {
+      "name": "Elevation position command",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Elevation current acceleration",
+      "type": "double (8 bytes)",
+      "unit": "deg/s^2"
+    },
+    {
+      "name": "Elevation Combined Autotrack Integration Factor",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Elevation torque bias mode",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Off": 0,
+        "ConstantTorqueBias": 1,
+        "FullTorqueBias": 2
+      }
+    },
+    {
+      "name": "Elevation overcurrent motor 1",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation overcurrent motor 2",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation overcurrent motor 3",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation overcurrent motor 4",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation oscillation status",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation oscillation warning",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation oscillation failue",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation profiler active",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation profiler running",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation interlock alarm",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation torque",
+      "type": "double (8 bytes)",
+      "unit": "%"
+    },
+    {
+      "name": "Elevation stow position",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation stow status",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation true",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Speed",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Low": 0,
+        "High": 1
+      }
+    },
+    {
+      "name": "Green Mode",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Tracking Status",
+      "type": "LIST (1 byte)",
+      "values": {
+        "NoTracking": 0,
+        "ProgramTrack": 1,
+        "AutoTrack": 2,
+        "CombinedAutoTrack": 3
+      }
+    },
+    {
+      "name": "Autotrack Status",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Inactive": 0,
+        "Standard, LockOn": 1,
+        "Standard, Backup": 2,
+        "Combined, LockOn": 3,
+        "Combined, Backup": 4
+      }
+    },
+    {
+      "name": "Spline Status",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Commanding Quality",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "General interlock alarm",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Qty of used program track stack positions",
+      "type": "int (4 bytes)"
+    },
+    {
+      "name": "Qty of free program track stack positions",
+      "type": "word (2 bytes)"
+    },
+    {
+      "name": "TimeToPosition",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Time Stamp Command",
+      "type": "double (8 bytes)",
+      "unit": "MJD1950"
+    },
+    {
+      "name": "Azimuth normalized position",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Azimuth can bus failure",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation can bus failure",
+      "type": "FAULT (1 byte)"
+    }
+  ],
+  "StatusGeneral8100": [
+    {
+      "name": "Time",
+      "type": "double (8 bytes)"
+    },
+    {
+      "name": "Year",
+      "type": "unsigned int (4 bytes)"
+    },
+    {
+      "name": "Azimuth Mode",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Stop": 0,
+        "Preset": 1,
+        "ProgramTrack": 2,
+        "Rate": 3,
+        "SurvivalMode": 4,
+        "Stow": 5,
+        "UnStow": 6,
+        "MaintenanceStow": 7,
+        "StarTrack": 8,
+        "SectorScan": 9,
+        "SunTrack": 10,
+        "MoonTrack": 11
+      }
+    },
+    {
+      "name": "Azimuth commanded position",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Azimuth current position",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Azimuth current velocity",
+      "type": "double (8 bytes)",
+      "unit": "deg/s"
+    },
+    {
+      "name": "Azimuth average position error",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Azimuth peak position error",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Azimuth computer disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth axis disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth axis in stop",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth brakes released",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth axis in stow position",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth stow pins - status",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Not Available": 0,
+        "Any Moving": 1,
+        "All Inserted": 2,
+        "All Retracted": 3,
+        "Failure": 4
+      }
+    },
+    {
+      "name": "Azimuth stop at LCP",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth power on",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Azimuth CCW limit",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth CW limit",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Azimuth summary fault",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation Mode",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Stop": 0,
+        "Preset": 1,
+        "ProgramTrack": 2,
+        "Rate": 3,
+        "SurvivalMode": 4,
+        "Stow": 5,
+        "UnStow": 6,
+        "MaintenanceStow": 7,
+        "StarTrack": 8,
+        "SectorScan": 9,
+        "SunTrack": 10,
+        "MoonTrack": 11
+      }
+    },
+    {
+      "name": "Elevation commanded position",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Elevation current position",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Elevation current velocity",
+      "type": "double (8 bytes)",
+      "unit": "deg/s"
+    },
+    {
+      "name": "Elevation average position error",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Elevation peak position error",
+      "type": "double (8 bytes)",
+      "unit": "deg"
+    },
+    {
+      "name": "Elevation computer disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation axis disabled",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation axis in stop",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation brakes released",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation axis in stow position",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation stow pins - status",
+      "type": "LIST (1 byte)",
+      "values": {
+        "Not Available": 0,
+        "Any Moving": 1,
+        "All Inserted": 2,
+        "All Retracted": 3,
+        "Failure": 4
+      }
+    },
+    {
+      "name": "Elevation stop at LCP",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation power on",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Elevation CCW limit",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation CW limit",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Elevation summary fault",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "Key Switch Bypass Emergency Limits",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "PCU Operation",
+      "type": "FAULT (1 byte)"
+    },
+    {
+      "name": "AT Lock On",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Remote",
+      "type": "bool (1 byte)"
+    },
+    {
+      "name": "Qty of free program track stack positions",
+      "type": "int (4 bytes)"
+    }
+  ]
+}

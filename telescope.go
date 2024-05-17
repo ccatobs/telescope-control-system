@@ -6,7 +6,6 @@ import (
 	"log"
 	"math"
 	"time"
-
 	"github.com/ccatobs/antenna-control-unit/datasets"
 )
 
