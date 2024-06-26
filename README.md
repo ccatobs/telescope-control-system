@@ -51,6 +51,14 @@ Abort the current command.
 curl -X POST 'http://localhost:5600/abort'
 ```
 
+### `/acu/failure-reset`
+
+Reset failures. Needed after E-stops.
+
+```sh
+curl -X POST 'http://localhost:5600/acu/failure-reset'
+```
+
 ### `/acu/position-broadcast`
 
 Enable the position broadcast UDP stream, or change where it's sent to.

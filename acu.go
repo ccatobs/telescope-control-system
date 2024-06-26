@@ -242,3 +242,11 @@ func (acu *ACU) PositionBroadcastEnable(host string, port int) error {
 
 	return nil
 }
+
+// FailureReset needs to be called after an e-stop is triggered and reset.
+func (acu *ACU) FailureReset() error {
+	data := url.Values{}
+	data.Set("Command", "Failure Reset")
+	_, err := acu.postAdminValues("/?Module=DataSets.CmdGeneralTransfer&Chapter=3&Command", data)
+	return err
+}
