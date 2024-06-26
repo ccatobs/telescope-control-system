@@ -251,3 +251,11 @@ func (acu *ACU) FailureReset() error {
 	_, err := acu.postAdminValues("/?Module=DataSets.CmdGeneralTransfer&Chapter=3&Command", data)
 	return err
 }
+
+// Reboot reboots the ACU.
+func (acu *ACU) Reboot() error {
+	data := url.Values{}
+	data.Set("Command", "ACU Reboot")
+	_, err := acu.postAdminValues("/?Module=DataSets.CmdGeneralTransfer&Chapter=3&Command", data)
+	return err
+}

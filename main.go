@@ -250,6 +250,20 @@ func main() {
 		}
 	})
 
+	mux.HandleFunc("/acu/reboot", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "POST" {
+			err := fmt.Errorf("method not POST")
+			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			return
+		}
+
+		err := acu.Reboot()
+		if err != nil {
+			jsonResponse(w, err, http.StatusInternalServerError)
+			return
+		}
+	})
+
 	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
 		var statusCode int
 		if req.Method != "POST" {

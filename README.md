@@ -72,6 +72,14 @@ curl -X POST 'localhost:5600/acu/position-broadcast' -d@- <<___
 ___
 ```
 
+### `/acu/reboot`
+
+Reboot the ACU.
+
+```sh
+curl -X POST 'http://localhost:5600/acu/reboot'
+```
+
 ### `/acu/status`
 
 Get the raw status of the ACU.
