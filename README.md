@@ -22,15 +22,24 @@ export FYST_ACU_PORT=8100
 
 
 ## Docker
+
 ### Building
+
 ```sh
 docker build --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" -t tcs .
 ```
 
 ### Running
+
 ```sh
 docker run --network host -e FYST_ACU_ADDR=127.0.0.1:8100 tcs
 ```
+
+## Updating
+
+- Edit `go.mod`, updating the `datasets` library tag version.
+
+- Run `GOPRIVATE='github.com/ccatobs/*' go mod tidy`.
 
 ## Commands
 
