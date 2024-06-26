@@ -10,7 +10,6 @@ import (
 // Z is the "observed" zenith distance (i.e. affected by refraction)
 // and dZ is what to add to Z to give the "topocentric" (i.e. in vacuo)
 // zenith distance.
-//
 type Refraction struct {
 	a float64
 	b float64
@@ -18,13 +17,12 @@ type Refraction struct {
 
 // NewRefraction determines the constants A and B in the atmospheric refraction model.
 //
-//   phpa     pressure at the observer (hPa = millibar)
-//   tc       ambient temperature at the observer (deg C)
-//   rh       relative humidity at the observer (range 0-1)
-//   wl       wavelength (micrometers)
+//	phpa     pressure at the observer (hPa = millibar)
+//	tc       ambient temperature at the observer (deg C)
+//	rh       relative humidity at the observer (range 0-1)
+//	wl       wavelength (micrometers)
 //
 // https://github.com/liberfa/erfa/blob/b1c4e0ccd11f3adb66508ba6c16e5ed214154af2/src/refco.c
-//
 func NewRefraction(phpa, tc, rh, wl float64) (Refraction, error) {
 	ps := math.Pow(10.0, (0.7859+0.03477*tc)/(1.0+0.00412*tc)) * (1.0 + phpa*(4.5e-6+6e-10*tc*tc))
 	pw := rh * ps / (1.0 - (1.0-rh)*ps/phpa)
