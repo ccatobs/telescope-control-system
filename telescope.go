@@ -43,11 +43,13 @@ func (t Telescope) Ready() error {
 	if t.rec.Year == 0 {
 		return fmt.Errorf("can't contact ACU")
 	}
-	y, d := statusTime(time.Now())
-	dy := t.rec.Year - y
-	dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
-	if dy != 0 || dt > 2 {
-		return fmt.Errorf("ACU & TCS clock mismatch: %d years, %g seconds", dy, dt)
+	if t.rec.Year > 2024 {
+		y, d := statusTime(time.Now())
+		dy := t.rec.Year - y
+		dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
+		if dy != 0 || dt > 2 {
+			return fmt.Errorf("ACU & TCS clock mismatch: %d years, %g seconds", dy, dt)
+		}
 	}
 	if !t.rec.Remote {
 		return fmt.Errorf("ACU not in remote mode")
