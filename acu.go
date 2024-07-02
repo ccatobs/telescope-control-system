@@ -112,7 +112,7 @@ func (acu *ACU) DatasetGet(name string, d interface{}) error {
 func (acu *ACU) ModeSet(mode string) error {
 	// ICD Section 9.1: "Before commanding or setting up a new mode,
 	// it is best practice to set the antenna to Stop mode first."
-	_, err := acu.get("/Command?identifier=Antenna.SkyAxes&command=Stop")
+	_, err := acu.get("/Command?identifier=DataSets.CmdModeTransfer&command=Stop")
 	if err != nil {
 		return err
 	}
@@ -121,7 +121,7 @@ func (acu *ACU) ModeSet(mode string) error {
 	case "Stop":
 		// We already stopped, so do nothing.
 	case "Preset", "ProgramTrack", "Rate", "SurvivalMode", "StarTrack", "MoonTrack", "SectorScan":
-		_, err = acu.get("/Command?identifier=Antenna.SkyAxes&command=SetAzElMode&parameter=" + mode)
+		_, err = acu.get("/Command?identifier=DataSets.CmdModeTransfer&command=SetAzElMode&parameter=" + mode)
 	default:
 		err = fmt.Errorf("ModeSet: bad mode: %s", mode)
 	}
