@@ -21,7 +21,7 @@ const (
 	azimuthAccelMax = 6.0  // [deg/sec^2]
 	azimuthJerkMax  = 12.0 // [deg/sec^3]
 
-	elevationMin      = 0.0
+	elevationMin      = -90.0
 	elevationMax      = 180.0
 	elevationSpeedMax = 1.5 // [deg/sec]
 	elevationAccelMax = 1.5 // [deg/sec^2]
