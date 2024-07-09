@@ -149,6 +149,13 @@ func (cmd azScanCmd) Check() error {
 }
 
 func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsDoneFunc, error) {
+	// ICD Section 9.1: "Before commanding or setting up a new mode,
+	// it is best practice to set the antenna to Stop mode first."
+	err := tel.acu.ModeSet("Stop")
+	if err != nil {
+		return nil, err
+	}
+
 	go func() {
 		err := tel.UploadScanPattern(ctx, pattern)
 		if err != nil {

@@ -66,8 +66,16 @@ func (t Telescope) Stop() error {
 }
 
 func (t Telescope) MoveTo(az, el float64) error {
+	// ICD Section 9.1: "Before commanding or setting up a new mode,
+	// it is best practice to set the antenna to Stop mode first."
+	err := t.acu.ModeSet("Stop")
+	if err != nil {
+		return err
+	}
+
+	// set preset position and go
 	rawAz, rawEl, _, _ := t.pointing.Sky2Raw(az, el, 0, 0)
-	err := t.acu.PresetPositionSet(rawAz, rawEl)
+	err = t.acu.PresetPositionSet(rawAz, rawEl)
 	if err != nil {
 		return err
 	}

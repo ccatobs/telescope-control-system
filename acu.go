@@ -120,22 +120,14 @@ func (acu *ACU) DatasetGet(name string, d interface{}) error {
 
 // ModeSet changes the mode.
 func (acu *ACU) ModeSet(mode string) error {
-	// ICD Section 9.1: "Before commanding or setting up a new mode,
-	// it is best practice to set the antenna to Stop mode first."
-	err := acu.command("DataSets.CmdModeTransfer", "Stop")
-	if err != nil {
-		return err
-	}
-
 	switch mode {
 	case "Stop":
-		// We already stopped, so do nothing.
+		return acu.command("DataSets.CmdModeTransfer", "Stop")
 	case "Preset", "ProgramTrack", "Rate", "SurvivalMode", "StarTrack", "MoonTrack", "SectorScan":
-		_, err = acu.get("/Command?identifier=DataSets.CmdModeTransfer&command=SetAzElMode&parameter=" + mode)
-	default:
-		err = fmt.Errorf("ModeSet: bad mode: %s", mode)
+		_, err := acu.get("/Command?identifier=DataSets.CmdModeTransfer&command=SetAzElMode&parameter=" + mode)
+		return err
 	}
-	return err
+	return fmt.Errorf("ModeSet: bad mode: %s", mode)
 }
 
 // StatusGeneral8100Get fetches the StatusGeneral8100 dataset.
