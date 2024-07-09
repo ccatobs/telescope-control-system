@@ -26,7 +26,7 @@ const (
 
 func init() {
 	// log format: date time(UTC) file:linenumber message
-	log.SetFlags(log.Ldate | log.Ltime | log.LUTC | log.Lshortfile)
+	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC | log.Lshortfile)
 }
 
 func jsonResponse(w http.ResponseWriter, err error, statusCode int) {
