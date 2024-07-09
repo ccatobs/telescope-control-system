@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
+	"log"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -72,6 +73,9 @@ func (acu *ACU) newAdminRequest(method, path string, body io.Reader) (*http.Requ
 }
 
 func (acu *ACU) get(path string) ([]byte, error) {
+	if !strings.HasPrefix(path, "/Values") { // cut down on log spam
+		log.Printf("ACU: GET %s", path)
+	}
 	req, err := acu.newRequest("GET", path, nil)
 	if err != nil {
 		return nil, err
@@ -80,6 +84,7 @@ func (acu *ACU) get(path string) ([]byte, error) {
 }
 
 func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
+	log.Printf("ACU: POST %s", path)
 	req, err := acu.newRequest("POST", path, body)
 	if err != nil {
 		return nil, err
