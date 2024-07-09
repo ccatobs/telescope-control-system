@@ -98,6 +98,11 @@ func (acu *ACU) postAdminValues(path string, values url.Values) ([]byte, error) 
 	return acu.do(req)
 }
 
+func (acu *ACU) command(id, cmd string) error {
+	_, err := acu.get("/Command?identifier=" + id + "&command=" + cmd)
+	return err
+}
+
 // DatasetGet fetches a dataset.
 func (acu *ACU) DatasetGet(name string, d interface{}) error {
 	b, err := acu.get("/Values?identifier=DataSets." + name + "&format=Binary")
@@ -112,7 +117,7 @@ func (acu *ACU) DatasetGet(name string, d interface{}) error {
 func (acu *ACU) ModeSet(mode string) error {
 	// ICD Section 9.1: "Before commanding or setting up a new mode,
 	// it is best practice to set the antenna to Stop mode first."
-	_, err := acu.get("/Command?identifier=DataSets.CmdModeTransfer&command=Stop")
+	err := acu.command("DataSets.CmdModeTransfer", "Stop")
 	if err != nil {
 		return err
 	}
@@ -148,7 +153,7 @@ func (acu *ACU) PresetPositionSet(azimuth, elevation float64) error {
 
 // ProgramTrackClear clears the program track queue.
 func (acu *ACU) ProgramTrackClear() error {
-	_, err := acu.get("/Command?identifier=DataSets.CmdTimePositionTransfer&command=Clear+Stack")
+	err := acu.command("DataSets.CmdTimePositionTransfer", "Clear+Stack")
 	return err
 }
 
@@ -246,16 +251,10 @@ func (acu *ACU) PositionBroadcastEnable(host string, port int) error {
 
 // FailureReset needs to be called after an e-stop is triggered and reset.
 func (acu *ACU) FailureReset() error {
-	data := url.Values{}
-	data.Set("Command", "Failure Reset")
-	_, err := acu.postAdminValues("/?Module=DataSets.CmdGeneralTransfer&Chapter=3&Command", data)
-	return err
+	return acu.command("DataSets.CmdGeneralTransfer", "Failure+Reset")
 }
 
 // Reboot reboots the ACU.
 func (acu *ACU) Reboot() error {
-	data := url.Values{}
-	data.Set("Command", "ACU Reboot")
-	_, err := acu.postAdminValues("/?Module=DataSets.CmdGeneralTransfer&Chapter=3&Command", data)
-	return err
+	return acu.command("DataSets.CmdGeneralTransfer", "ACU+Reboot")
 }
