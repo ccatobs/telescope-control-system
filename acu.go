@@ -170,7 +170,21 @@ func (acu *ACU) ProgramTrackAdd(points []datasets.TimePositionTransfer) error {
 		return err
 	}
 	_, err = acu.post("/UploadPtStack?type=FileMultipart", writer.FormDataContentType(), &body)
-	return err
+	if err != nil {
+		return err
+	}
+	var details datasets.StatusCCatDetailed8100
+	err = acu.DatasetGet("StatusCCatDetailed8100", &details)
+	if err != nil {
+		return err
+	}
+	if details.StartOfProgramTrackTooEarly {
+		return fmt.Errorf("ProgramTrackAdd: StartOfProgramTrackTooEarly")
+	}
+	if details.ProgramTrackPositionFailure {
+		return fmt.Errorf("ProgramTrackAdd: ProgramTrackPositionFailure")
+	}
+	return nil
 }
 
 // ProgramTrackGet gets the current program track queue.
