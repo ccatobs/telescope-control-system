@@ -156,13 +156,21 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 		return nil, err
 	}
 
+	uploadErrChan := make(chan error)
 	go func() {
-		err := tel.UploadScanPattern(ctx, pattern)
-		if err != nil {
-			log.Print(err)
-		}
+		uploadErrChan <- tel.UploadScanPattern(ctx, pattern)
 	}()
+
 	isDone := func(tel *Telescope) (bool, error) {
+		// check for upload errors
+		select {
+		default:
+		case err := <-uploadErrChan:
+			if err != nil {
+				return true, err
+			}
+		}
+
 		// XXX:racy
 		rec := tel.Status()
 		done := (rec.QtyOfFreeProgramTrackStackPositions == maxFreeProgramTrackStack-1) && // last point remains on the stack
