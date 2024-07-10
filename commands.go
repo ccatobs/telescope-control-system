@@ -156,6 +156,12 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 		return nil, err
 	}
 
+	err = tel.acu.ProgramTrackClear()
+	if err != nil {
+		return nil, err
+	}
+	time.Sleep(3 * time.Millisecond) // wait for ProgramTrackClear to take effect
+
 	uploadErrChan := make(chan error)
 	go func() {
 		uploadErrChan <- tel.UploadScanPattern(ctx, pattern)

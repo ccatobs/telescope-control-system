@@ -89,12 +89,6 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
 	var status datasets.StatusGeneral8100
 
-	err := t.acu.ProgramTrackClear()
-	if err != nil {
-		return err
-	}
-	time.Sleep(3 * time.Millisecond) // wait for ProgramTrackClear to take effect
-
 	for {
 		err := t.acu.StatusGeneral8100Get(&status)
 		if err != nil {
