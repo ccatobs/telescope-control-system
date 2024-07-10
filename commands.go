@@ -181,7 +181,9 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 		rec := tel.Status()
 		done := (rec.QtyOfFreeProgramTrackStackPositions == maxFreeProgramTrackStack-1) && // last point remains on the stack
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
-			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
+			(math.Abs(rec.ElevationCurrentVelocity) < speedTol) &&
+			(rec.AzimuthMode == datasets.AzimuthModeProgramTrack) &&
+			(rec.ElevationMode == datasets.ElevationModeProgramTrack)
 		return done, nil
 	}
 	return isDone, tel.acu.ModeSet("ProgramTrack")
