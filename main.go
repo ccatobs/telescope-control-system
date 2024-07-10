@@ -244,10 +244,11 @@ func main() {
 		}
 
 		err := acu.FailureReset()
+		status := http.StatusOK
 		if err != nil {
-			jsonResponse(w, err, http.StatusInternalServerError)
-			return
+			status = http.StatusInternalServerError
 		}
+		jsonResponse(w, err, status)
 	})
 
 	mux.HandleFunc("/acu/reboot", func(w http.ResponseWriter, req *http.Request) {
@@ -258,10 +259,11 @@ func main() {
 		}
 
 		err := acu.Reboot()
+		status := http.StatusOK
 		if err != nil {
-			jsonResponse(w, err, http.StatusInternalServerError)
-			return
+			status = http.StatusInternalServerError
 		}
+		jsonResponse(w, err, status)
 	})
 
 	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
