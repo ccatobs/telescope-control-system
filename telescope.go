@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"math"
+	"os"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -86,9 +87,9 @@ func (t Telescope) MoveTo(az, el float64) error {
 func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) error {
 	iter := pattern.Iterator()
 	total := 0
+	samples := make([]ScanPatternSample, maxFreeProgramTrackStack)
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
 	var status datasets.StatusGeneral8100
-	var lastT time.Time
 
 	for {
 		err := t.acu.StatusGeneral8100Get(&status)
@@ -97,12 +98,15 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			return err
 		}
 		nmax := int(status.QtyOfFreeProgramTrackStackPositions)
+		if nmax == 0 {
+			return fmt.Errorf("upload: ACU program track stack is full")
+		}
 
 		// upload batch
 		n := 0
 		for !pattern.Done(iter) {
-			var x ScanPatternSample
-			err := pattern.Next(iter, &x)
+			x := &samples[n]
+			err := pattern.Next(iter, x)
 			if err != nil {
 				log.Printf("pattern error: %v", err)
 				break
@@ -128,18 +132,35 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			pt.AzFlag = x.AzFlag
 			pt.ElFlag = x.ElFlag
 
-			lastT = x.T
 			n++
 			if n == nmax {
 				break
 			}
 		}
+
+		if n <= 0 {
+			return fmt.Errorf("upload: no points")
+		}
+
 		total += n
-		if n > 0 {
-			log.Printf("upload: adding %d points", n)
-			err := t.acu.ProgramTrackAdd(pts[:n])
+		log.Printf("upload: adding %d points", n)
+		err = t.acu.ProgramTrackAdd(pts[:n])
+		if err != nil {
+			return err
+		}
+
+		// send points to housekeeping
+		// XXX:FIXME temporary hack
+		url := os.Getenv("XXX_PROGRAM_TRACK_UPLOAD_URL")
+		if url != "" {
+			err = postJSON(url, &struct {
+				Points []ScanPatternSample `json:"points"`
+			}{
+				Points: samples[:n],
+			})
 			if err != nil {
-				return err
+				log.Printf("upload: %s", err)
+				// ignore error
 			}
 		}
 
@@ -149,6 +170,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		}
 
 		// sleep until we can upload the next batch
+		lastT := samples[n-1].T
 		wait := time.Until(lastT) / 2
 		log.Printf("upload: next batch in %.3g minutes", wait.Minutes())
 		select {

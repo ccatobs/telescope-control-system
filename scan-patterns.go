@@ -8,13 +8,13 @@ import (
 )
 
 type ScanPatternSample struct {
-	T      time.Time
-	Az     float64
-	El     float64
-	AzVel  float64
-	ElVel  float64
-	AzFlag int8
-	ElFlag int8
+	T      time.Time `json:"t"`
+	Az     float64   `json:"az"`
+	El     float64   `json:"el"`
+	AzVel  float64   `json:"vaz"`
+	ElVel  float64   `json:"vel"`
+	AzFlag int8      `json:"azFlag"`
+	ElFlag int8      `json:"elFlag"`
 }
 
 // A ScanPattern represents an abstract scan pattern generator.
