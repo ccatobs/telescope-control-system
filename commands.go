@@ -258,12 +258,12 @@ func (cmd pathCmd) Check() error {
 		if pattern.Done(iter) {
 			break
 		}
-		var pt datasets.TimePositionTransfer
+		var pt ScanPatternSample
 		err := pattern.Next(iter, &pt)
 		if err != nil {
 			return err
 		}
-		err = checkAzEl(pt.AzPosition, pt.ElPosition, pt.AzVelocity, pt.ElVelocity)
+		err = checkAzEl(pt.Az, pt.El, pt.AzVel, pt.ElVel)
 		if err != nil {
 			return fmt.Errorf("point %d: %w", i, err)
 		}

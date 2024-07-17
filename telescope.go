@@ -88,6 +88,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 	total := 0
 	pts := make([]datasets.TimePositionTransfer, maxFreeProgramTrackStack)
 	var status datasets.StatusGeneral8100
+	var lastT time.Time
 
 	for {
 		err := t.acu.StatusGeneral8100Get(&status)
@@ -100,29 +101,34 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		// upload batch
 		n := 0
 		for !pattern.Done(iter) {
-			pt := &pts[n]
-			err := pattern.Next(iter, pt)
+			var x ScanPatternSample
+			err := pattern.Next(iter, &x)
 			if err != nil {
 				log.Printf("pattern error: %v", err)
 				break
 			}
 
 			rawAz, rawEl, rawVaz, rawVel := t.pointing.Sky2Raw(
-				pt.AzPosition,
-				pt.ElPosition,
-				pt.AzVelocity,
-				pt.ElVelocity,
+				x.Az,
+				x.El,
+				x.AzVel,
+				x.ElVel,
 			)
 			err = checkAzEl(rawAz, rawEl, rawVaz, rawVel)
 			if err != nil {
 				return err
 			}
 
+			pt := &pts[n]
+			pt.Day, pt.TimeOfDay = VertexTime(x.T)
 			pt.AzPosition = rawAz
 			pt.ElPosition = rawEl
 			pt.AzVelocity = rawVaz
 			pt.ElVelocity = rawVel
+			pt.AzFlag = x.AzFlag
+			pt.ElFlag = x.ElFlag
 
+			lastT = x.T
 			n++
 			if n == nmax {
 				break
@@ -143,12 +149,8 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		}
 
 		// sleep until we can upload the next batch
-		doy, tod := VertexTime(time.Now())
-		waitSecs := 86400*float64(pts[n-1].Day-doy) + (pts[n-1].TimeOfDay - tod)
-		waitSecs = waitSecs / 2
-		wait := time.Duration(waitSecs) * time.Second
+		wait := time.Until(lastT) / 2
 		log.Printf("upload: next batch in %.3g minutes", wait.Minutes())
-
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():

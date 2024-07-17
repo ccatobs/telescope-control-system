@@ -5,9 +5,17 @@ import (
 	"log"
 	"math"
 	"time"
-
-	"github.com/ccatobs/antenna-control-unit/datasets"
 )
+
+type ScanPatternSample struct {
+	T      time.Time
+	Az     float64
+	El     float64
+	AzVel  float64
+	ElVel  float64
+	AzFlag int8
+	ElFlag int8
+}
 
 // A ScanPattern represents an abstract scan pattern generator.
 type ScanPattern interface {
@@ -15,7 +23,7 @@ type ScanPattern interface {
 	// Done returns true if there are no more points, false otherwise.
 	Done(*ScanPatternIterator) bool
 	// Next retrieves the next point in the pattern.
-	Next(*ScanPatternIterator, *datasets.TimePositionTransfer) error
+	Next(*ScanPatternIterator, *ScanPatternSample) error
 }
 
 type ScanPatternIterator struct {
@@ -44,15 +52,15 @@ func (scan RepeatingScanPattern) Done(iter *ScanPatternIterator) bool {
 	return iter.index == scan.n*scan.m
 }
 
-func (scan RepeatingScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePositionTransfer) error {
+func (scan RepeatingScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample) error {
 	t := iter.t
 	j := iter.index % scan.m
 
-	p.Day, p.TimeOfDay = VertexTime(t)
-	p.AzPosition = scan.azs[j]
-	p.ElPosition = scan.els[j]
-	p.AzVelocity = scan.vazs[j]
-	p.ElVelocity = scan.vels[j]
+	p.T = t
+	p.Az = scan.azs[j]
+	p.El = scan.els[j]
+	p.AzVel = scan.vazs[j]
+	p.ElVel = scan.vels[j]
 	p.AzFlag = scan.fazs[j]
 	p.ElFlag = scan.fels[j]
 
@@ -133,7 +141,7 @@ func (path PathScanPattern) Done(iter *ScanPatternIterator) bool {
 	return iter.index == len(path.points)
 }
 
-func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePositionTransfer) error {
+func (path PathScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample) error {
 	i := iter.index
 	x := path.points[i]
 	t := path.t0.Add(Seconds2Duration(x[0]))
@@ -153,11 +161,11 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePosi
 		}
 	}
 
-	p.Day, p.TimeOfDay = VertexTime(t)
-	p.AzPosition = az
-	p.ElPosition = el
-	p.AzVelocity = vaz
-	p.ElVelocity = vel
+	p.T = t
+	p.Az = az
+	p.El = el
+	p.AzVel = vaz
+	p.ElVel = vel
 
 	iter.index++
 	return nil
@@ -190,7 +198,7 @@ func (track TrackScanPattern) Done(iter *ScanPatternIterator) bool {
 	return iter.t.After(track.tmax)
 }
 
-func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePositionTransfer) error {
+func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample) error {
 	t := iter.t
 
 	// convert ra,dec to az,el
@@ -209,9 +217,9 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *datasets.TimePo
 		}
 	}
 
-	p.Day, p.TimeOfDay = VertexTime(t)
-	p.AzPosition = az
-	p.ElPosition = el
+	p.T = t
+	p.Az = az
+	p.El = el
 
 	remaining := track.tmax.Sub(t)
 	if remaining < 0 {
