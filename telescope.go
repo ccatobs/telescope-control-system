@@ -55,6 +55,17 @@ func (t Telescope) Ready() error {
 	if !t.rec.Remote {
 		return fmt.Errorf("ACU not in remote mode")
 	}
+	var extra datasets.StatusExtra8100
+	err := t.acu.DatasetGet("StatusExtra8100", &extra)
+	if err != nil {
+		return err
+	}
+	if !extra.AzimuthProfilerActive {
+		return fmt.Errorf("azimuth profiler not active")
+	}
+	if !extra.ElevationProfilerActive {
+		return fmt.Errorf("elevation profiler not active")
+	}
 	return nil
 }
 
