@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"log/slog"
 	"mime/multipart"
 	"net/http"
 	"net/url"
@@ -16,11 +17,16 @@ import (
 	"github.com/ccatobs/antenna-control-unit/datasets"
 )
 
+const (
+	minDurationBetweenCommands = 10 * time.Millisecond
+)
+
 // ACU manages communication with the ACU.
 type ACU struct {
-	Addr      string
-	AdminAddr string
-	client    *http.Client
+	Addr        string
+	AdminAddr   string
+	client      *http.Client
+	lastCommand time.Time
 }
 
 // NewACU returns a new connection to host.
@@ -89,6 +95,7 @@ func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", contentType)
+	acu.commandWait()
 	return acu.do(req)
 }
 
@@ -99,12 +106,32 @@ func (acu *ACU) postAdminValues(path string, values url.Values) ([]byte, error) 
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	acu.commandWait()
 	return acu.do(req)
 }
 
-func (acu *ACU) command(id, cmd string) error {
-	_, err := acu.get("/Command?identifier=" + id + "&command=" + cmd)
+func (acu *ACU) commandWait() {
+	// don't send commands too quickly
+	dt := minDurationBetweenCommands - time.Since(acu.lastCommand)
+	if dt > 0 {
+		slog.Debug("sendCommand", "sleep", dt)
+		time.Sleep(dt)
+	}
+	acu.lastCommand = time.Now()
+}
+
+func (acu *ACU) sendCommand(url string) error {
+	acu.commandWait()
+	_, err := acu.get(url)
 	return err
+}
+
+func (acu *ACU) command2(id, cmd string) error {
+	return acu.sendCommand("/Command?identifier=" + id + "&command=" + cmd)
+}
+
+func (acu *ACU) command3(id, cmd, param string) error {
+	return acu.sendCommand("/Command?identifier=" + id + "&command=" + cmd + "&parameter=" + param)
 }
 
 // DatasetGet fetches a dataset.
@@ -121,10 +148,9 @@ func (acu *ACU) DatasetGet(name string, d interface{}) error {
 func (acu *ACU) ModeSet(mode string) error {
 	switch mode {
 	case "Stop":
-		return acu.command("DataSets.CmdModeTransfer", "Stop")
+		return acu.command2("DataSets.CmdModeTransfer", "Stop")
 	case "Preset", "ProgramTrack", "Rate", "SurvivalMode", "StarTrack", "MoonTrack", "SectorScan":
-		_, err := acu.get("/Command?identifier=DataSets.CmdModeTransfer&command=SetAzElMode&parameter=" + mode)
-		return err
+		return acu.command3("DataSets.CmdModeTransfer", "SetAzElMode", mode)
 	}
 	return fmt.Errorf("ModeSet: bad mode: %s", mode)
 }
@@ -141,16 +167,12 @@ func (acu *ACU) StatusGeneral8100Get(record *datasets.StatusGeneral8100) error {
 
 // PresetPositionSet sets the preset position.
 func (acu *ACU) PresetPositionSet(azimuth, elevation float64) error {
-	path := fmt.Sprintf("/Command?identifier=DataSets.CmdAzElPositionTransfer&command=Set+Azimuth+Elevation&parameter=%g|%g",
-		azimuth, elevation)
-	_, err := acu.get(path)
-	return err
+	return acu.command3("DataSets.CmdAzElPositionTransfer", "Set+Azimuth+Elevation", fmt.Sprintf("%g|%g", azimuth, elevation))
 }
 
 // ProgramTrackClear clears the program track queue.
 func (acu *ACU) ProgramTrackClear() error {
-	err := acu.command("DataSets.CmdTimePositionTransfer", "Clear+Stack")
-	return err
+	return acu.command2("DataSets.CmdTimePositionTransfer", "Clear+Stack")
 }
 
 // ProgramTrackAdd appends points to the program track queue.
@@ -209,26 +231,22 @@ func (acu *ACU) ProgramTrackGet(points *[]datasets.TimePositionTransfer) error {
 
 // ShutterClose closes the shutter.
 func (acu *ACU) ShutterClose() error {
-	_, err := acu.get("/Command?command=SetShutter&parameter=Close")
-	return err
+	return acu.command2("SetShutter", "Close")
 }
 
 // ShutterOpen opens the shutter.
 func (acu *ACU) ShutterOpen() error {
-	_, err := acu.get("/Command?command=SetShutter&parameter=Open")
-	return err
+	return acu.command2("SetShutter", "Open")
 }
 
 // SunAvoidanceDisable disables sun avoidance.
 func (acu *ACU) SunAvoidanceDisable() error {
-	_, err := acu.get("/Command?command=SetSunAvoidance&parameter=Disable")
-	return err
+	return acu.command2("SetSunAvoidance", "Disable")
 }
 
 // SunAvoidanceEnable enables sun avoidance.
 func (acu *ACU) SunAvoidanceEnable() error {
-	_, err := acu.get("/Command?command=SetSunAvoidance&parameter=Enable")
-	return err
+	return acu.command2("SetSunAvoidance", "Enable")
 }
 
 // PositionBroadcastEnable enables the 200Hz position broadcast UDP stream.
@@ -261,10 +279,10 @@ func (acu *ACU) PositionBroadcastEnable(host string, port int) error {
 
 // FailureReset needs to be called after an e-stop is triggered and reset.
 func (acu *ACU) FailureReset() error {
-	return acu.command("DataSets.CmdGeneralTransfer", "Failure+Reset")
+	return acu.command2("DataSets.CmdGeneralTransfer", "Failure+Reset")
 }
 
 // Reboot reboots the ACU.
 func (acu *ACU) Reboot() error {
-	return acu.command("DataSets.CmdGeneralTransfer", "ACU+Reboot")
+	return acu.command2("DataSets.CmdGeneralTransfer", "ACU+Reboot")
 }
