@@ -19,6 +19,8 @@ import (
 
 const (
 	minDurationBetweenCommands = 10 * time.Millisecond
+
+	clientTimeout = 2000 * time.Millisecond
 )
 
 // ACU manages communication with the ACU.
@@ -37,7 +39,7 @@ func NewACU(host, port, adminPort string) *ACU {
 		Addr:      addr,
 		AdminAddr: adminAddr,
 		client: &http.Client{
-			Timeout: 500 * time.Millisecond,
+			Timeout: clientTimeout,
 		},
 	}
 }

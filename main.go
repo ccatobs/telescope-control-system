@@ -19,7 +19,7 @@ const (
 	statusUpdateDuration = 1000 * time.Millisecond
 
 	// max time waiting to queue command
-	commandBusyTimeout = 100 * time.Millisecond
+	commandBusyTimeout = 500 * time.Millisecond
 
 	// http connection timeout
 	connectionTimeout = 1000 * time.Millisecond
