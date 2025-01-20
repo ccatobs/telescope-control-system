@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"log/slog"
 	"math"
 	"net/http"
 	"os"
@@ -25,8 +26,18 @@ const (
 )
 
 func init() {
-	// log format: date time(UTC) file:linenumber message
-	log.SetFlags(log.Ldate | log.Ltime | log.Lmicroseconds | log.LUTC | log.Lshortfile)
+	lvl := new(slog.LevelVar)
+	lvl.Set(slog.LevelDebug)
+	logger := slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{
+		Level: lvl,
+	}))
+	slog.SetDefault(logger)
+}
+
+func logError(err error) {
+	if err != nil {
+		slog.Error(err.Error())
+	}
 }
 
 func jsonResponse(w http.ResponseWriter, err error, statusCode int) {
@@ -46,7 +57,7 @@ func jsonResponse(w http.ResponseWriter, err error, statusCode int) {
 	w.WriteHeader(statusCode)
 	err = json.NewEncoder(w).Encode(response)
 	if err != nil {
-		log.Print(err)
+		logError(err)
 	}
 }
 
@@ -69,11 +80,11 @@ func main() {
 	// report immediately any ACU problems
 	err := tel.UpdateStatus()
 	if err != nil {
-		log.Print(err)
+		logError(err)
 	}
 	err = tel.Ready()
 	if err != nil {
-		log.Print(err)
+		logError(err)
 	}
 
 	type MeasurementFloat struct {
@@ -130,7 +141,7 @@ func main() {
 				case <-time.After(statusUpdateDuration):
 					err := tel.UpdateStatus()
 					if err != nil {
-						log.Print(err)
+						logError(err)
 					}
 				case c := <-abort:
 					log.Print("ignoring abort")
@@ -145,7 +156,7 @@ func main() {
 			log.Printf("got command: %s", desc)
 
 			if err := tel.Ready(); err != nil {
-				log.Print(err)
+				logError(err)
 				continue
 			}
 
@@ -153,7 +164,7 @@ func main() {
 			ctx, cancel := context.WithCancel(context.Background())
 			isDone, err := cmd.Start(ctx, tel)
 			if err != nil {
-				log.Print(err)
+				logError(err)
 				cancel()
 				continue
 			}
@@ -175,7 +186,7 @@ func main() {
 					err = tel.Stop()
 				}
 				if err != nil {
-					log.Print(err)
+					logError(err)
 					break
 				}
 			}
@@ -232,7 +243,7 @@ func main() {
 
 		err = json.NewEncoder(w).Encode(&rec)
 		if err != nil {
-			log.Print(err)
+			logError(err)
 		}
 	})
 
@@ -276,7 +287,7 @@ func main() {
 		log.Print("clearing program track stack")
 		err := acu.ProgramTrackClear()
 		if err != nil {
-			log.Print(err)
+			logError(err)
 			statusCode = http.StatusBadRequest
 		} else {
 			statusCode = http.StatusOK
@@ -292,7 +303,7 @@ func main() {
 		}
 		err := json.NewEncoder(w).Encode(&tel_pos)
 		if err != nil {
-			log.Print(err)
+			logError(err)
 		}
 	})
 

@@ -30,24 +30,16 @@ const (
 
 func checkAzEl(az, el, vaz, vel float64) error {
 	if az < azimuthMin || az > azimuthMax {
-		error := fmt.Sprintf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
-		log.Print(error)
-		return fmt.Errorf(error)
+		return fmt.Errorf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
 	}
 	if el < elevationMin || el > elevationMax {
-		error := fmt.Sprintf("commanded elevation (%g) out of range [%g,%g]", el, elevationMin, elevationMax)
-		log.Print(error)
-		return fmt.Errorf(error)
+		return fmt.Errorf("commanded elevation (%g) out of range [%g,%g]", el, elevationMin, elevationMax)
 	}
 	if math.Abs(vaz) > azimuthSpeedMax {
-		error := fmt.Sprintf("commanded azimuth vel (%g) out of range [%g,%g]", vaz, -azimuthSpeedMax, azimuthSpeedMax)
-		log.Print(error)
-		return fmt.Errorf(error)
+		return fmt.Errorf("commanded azimuth vel (%g) out of range [%g,%g]", vaz, -azimuthSpeedMax, azimuthSpeedMax)
 	}
 	if math.Abs(vel) > elevationSpeedMax {
-		error := fmt.Sprintf("commanded elevation vel (%g) out of range [%g,%g]", vel, -elevationSpeedMax, elevationSpeedMax)
-		log.Print(error)
-		return fmt.Errorf(error)
+		return fmt.Errorf("commanded elevation vel (%g) out of range [%g,%g]", vel, -elevationSpeedMax, elevationSpeedMax)
 	}
 	return nil
 }
