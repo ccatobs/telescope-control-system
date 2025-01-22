@@ -55,10 +55,10 @@ func (acu *ACU) do(req *http.Request) ([]byte, error) {
 		return nil, err
 	}
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf(resp.Status)
+		return nil, fmt.Errorf("%s", resp.Status)
 	}
 	if strings.HasPrefix(string(b), "Failed:") {
-		return nil, fmt.Errorf(string(b))
+		return nil, fmt.Errorf("%s", string(b))
 	}
 	return b, nil
 }
