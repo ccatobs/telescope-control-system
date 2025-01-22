@@ -82,6 +82,10 @@ func main() {
 	if err != nil {
 		logError(err)
 	}
+	err = tel.CalibrateTime()
+	if err != nil {
+		logError(err)
+	}
 	err = tel.Ready()
 	if err != nil {
 		logError(err)

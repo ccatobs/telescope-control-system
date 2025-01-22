@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"log/slog"
 	"math"
 	"os"
 	"time"
@@ -40,12 +41,24 @@ func statusTime(t time.Time) (uint32, float64) {
 	return uint32(t.UTC().Year()), float64(doy) + tod/(24*60*60)
 }
 
+func (t *Telescope) CalibrateTime() error {
+	y, d := statusTime(time.Now())
+	dy := t.rec.Year - y
+	if dy != 0 {
+		return fmt.Errorf("ACU/TCS clock mismatch: %d years", dy)
+	}
+	dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
+	slog.Info(fmt.Sprintf("ACU - TCS clock difference: %g seconds", dt))
+	t.pointing.tOffset = Seconds2Duration(dt)
+	return nil
+}
+
 func (t Telescope) Ready() error {
 	if t.rec.Year == 0 {
 		return fmt.Errorf("can't contact ACU")
 	}
 	if t.rec.Year > 2024 {
-		y, d := statusTime(time.Now())
+		y, d := statusTime(time.Now().Add(t.pointing.tOffset))
 		dy := t.rec.Year - y
 		dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
 		if dy != 0 || dt > 2 {
@@ -86,7 +99,7 @@ func (t Telescope) MoveTo(az, el float64) error {
 	}
 
 	// set preset position and go
-	rawAz, rawEl, _, _ := t.pointing.Sky2Raw(az, el, 0, 0)
+	rawAz, rawEl := t.pointing.Sky2Raw(az, el)
 	err = t.acu.PresetPositionSet(rawAz, rawEl)
 	if err != nil {
 		return err
@@ -123,7 +136,8 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 				break
 			}
 
-			rawAz, rawEl, rawVaz, rawVel := t.pointing.Sky2Raw(
+			rawT, rawAz, rawEl, rawVaz, rawVel := t.pointing.Track2Raw(
+				x.T,
 				x.Az,
 				x.El,
 				x.AzVel,
@@ -135,7 +149,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			}
 
 			pt := &pts[n]
-			pt.Day, pt.TimeOfDay = VertexTime(x.T)
+			pt.Day, pt.TimeOfDay = VertexTime(rawT)
 			pt.AzPosition = rawAz
 			pt.ElPosition = rawEl
 			pt.AzVelocity = rawVaz

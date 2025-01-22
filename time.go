@@ -29,5 +29,5 @@ func Time2Unixtime(t time.Time) float64 {
 
 // Convert float64 seconds to a time.Duration.
 func Seconds2Duration(s float64) time.Duration {
-	return time.Duration(s*1e9) * time.Nanosecond
+	return time.Duration(s * float64(time.Second))
 }
