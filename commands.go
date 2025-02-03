@@ -109,9 +109,13 @@ func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 	err := tel.MoveTo(cmd.Azimuth, cmd.Elevation)
 	isDone := func(tel *Telescope) (bool, error) {
 		rec := tel.Status()
-		done := (rec.AzimuthMode == datasets.AzimuthModePreset) &&
-			(rec.ElevationMode == datasets.ElevationModePreset) &&
-			(math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthCommandedPosition) < positionTol) &&
+		if rec.AzimuthMode != datasets.AzimuthModePreset {
+			return true, fmt.Errorf("azimuth not in preset mode: %d", rec.AzimuthMode)
+		}
+		if rec.ElevationMode != datasets.ElevationModePreset {
+			return true, fmt.Errorf("elevation not in preset mode: %d", rec.ElevationMode)
+		}
+		done := (math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthCommandedPosition) < positionTol) &&
 			(math.Abs(rec.ElevationCurrentPosition-rec.ElevationCommandedPosition) < positionTol) &&
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
 			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
@@ -169,13 +173,19 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 			}
 		}
 
-		// XXX:racy
 		rec := tel.Status()
+
+		if rec.AzimuthMode != datasets.AzimuthModeProgramTrack {
+			return true, fmt.Errorf("azimuth not in program track mode: %d", rec.AzimuthMode)
+		}
+		if rec.ElevationMode != datasets.ElevationModeProgramTrack {
+			return true, fmt.Errorf("elevation not in program track mode: %d", rec.ElevationMode)
+		}
+
+		// XXX:racy
 		done := (rec.QtyOfFreeProgramTrackStackPositions == maxFreeProgramTrackStack-1) && // last point remains on the stack
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
-			(math.Abs(rec.ElevationCurrentVelocity) < speedTol) &&
-			(rec.AzimuthMode == datasets.AzimuthModeProgramTrack) &&
-			(rec.ElevationMode == datasets.ElevationModeProgramTrack)
+			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
 		return done, nil
 	}
 	return isDone, tel.acu.ModeSet("ProgramTrack")
