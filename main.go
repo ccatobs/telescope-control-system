@@ -69,12 +69,13 @@ func getenv(key, def string) string {
 }
 
 func main() {
-	acuHost := getenv("FYST_ACU_HOST", "172.16.5.95")
+	acuHost := getenv("FYST_ACU_HOST", "172.16.5.194")
 	acuPort := getenv("FYST_ACU_PORT", "8100")
+	acuMonitorPort := getenv("FYST_ACU_MONITOR_PORT", "8110")
 	acuAdminPort := getenv("FYST_ACU_ADMIN_PORT", "8080")
 	apiAddr := getenv("FYST_TCS_ADDR", ":5600")
 
-	acu := NewACU(acuHost, acuPort, acuAdminPort)
+	acu := NewACU(acuHost, acuPort, acuMonitorPort, acuAdminPort)
 	tel := NewTelescope(acu)
 
 	// report immediately any ACU problems
