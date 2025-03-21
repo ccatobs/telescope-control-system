@@ -22,3 +22,10 @@ jobs:
 
       - name: Publish image to GitHub Packages
         run: docker push "${{ env.ghp_pkg }}"
+
+      - name: Delete old packages
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ github.event.repository.name }}
+          package-type: container
+          min-versions-to-keep: 7
