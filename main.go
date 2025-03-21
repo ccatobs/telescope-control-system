@@ -203,6 +203,15 @@ func main() {
 	// build http API
 	mux := http.NewServeMux()
 
+	mux.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		err := tel.Ready()
+		statusCode := http.StatusServiceUnavailable
+		if err == nil {
+			statusCode = http.StatusOK
+		}
+		jsonResponse(w, err, statusCode)
+	}))
+
 	mux.HandleFunc("/abort", func(w http.ResponseWriter, req *http.Request) {
 		var err error
 		var statusCode int
