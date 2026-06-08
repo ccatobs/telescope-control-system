@@ -7,10 +7,11 @@ mkdir "$prefix/src"
 cd "$prefix/src"
 
 # liberfa
-erfa_version="1.7.2"
-erfa_tarball="erfa-${erfa_version}.tar.gz"
+erfa_version="2.0.1"
+erfa_tarball="erfa-${erfa_version}.tar.xz"
 curl -LO "https://github.com/liberfa/erfa/releases/download/v${erfa_version}/${erfa_tarball}"
-tar -xzf "$erfa_tarball"
+tar -xaf "$erfa_tarball"
 cd "erfa-${erfa_version}"
+[[ -f ./configure ]] || ./bootstrap.sh
 ./configure --prefix="$prefix" --disable-shared
 make install
