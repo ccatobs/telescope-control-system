@@ -207,6 +207,7 @@ type trackCmd struct {
 
 func (cmd trackCmd) Check() error {
 	switch cmd.Coordsys {
+	case "Galactic":
 	case "Horizon":
 	case "ICRS":
 	default:
@@ -234,6 +235,7 @@ type pathCmd struct {
 
 func (cmd pathCmd) Check() error {
 	switch cmd.Coordsys {
+	case "Galactic":
 	case "Horizon":
 	case "ICRS":
 	default:

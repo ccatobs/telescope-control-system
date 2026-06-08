@@ -159,6 +159,15 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample
 		if err != nil {
 			return err
 		}
+	case "Galactic":
+		var err error
+		ut := Time2Unixtime(t)
+		az, el, err = GalLonLat2AzEl(ut, x[1], x[2])
+		// XXX:TBD velocities
+		log.Printf("%f L:%3.2f B:%3.2f AZ:%3.2f EL:%3.2f", ut, x[1], x[2], az, el)
+		if err != nil {
+			return err
+		}
 	}
 
 	p.T = t
@@ -212,6 +221,14 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSamp
 		unixtime := float64(t.UnixNano()) * 1e-9
 		az, el, err = RADec2AzEl(unixtime, track.ra, track.dec)
 		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", unixtime, track.ra, track.dec, az, el)
+		if err != nil {
+			return err
+		}
+	case "Galactic":
+		var err error
+		unixtime := float64(t.UnixNano()) * 1e-9
+		az, el, err = GalLonLat2AzEl(unixtime, track.ra, track.dec)
+		log.Printf("%f L:%3.2f B:%3.2f AZ:%3.2f EL:%3.2f", unixtime, track.ra, track.dec, az, el)
 		if err != nil {
 			return err
 		}

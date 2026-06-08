@@ -41,6 +41,19 @@ docker run --network host -e FYST_ACU_ADDR=127.0.0.1:8100 tcs
 
 - Run `GOPRIVATE='github.com/ccatobs/*' go mod tidy`.
 
+## Coordinate Systems
+
+The `/path` and `/track` commands accept a `coordsys` field with one of three values:
+
+| `coordsys` | Description |
+|---|---|
+| `"Horizon"` | Topocentric azimuth and elevation (degrees). Az is N=0, E=90. |
+| `"ICRS"` | ICRS right ascension and declination (degrees) at J2000.0. |
+| `"Galactic"` | Galactic longitude and latitude (degrees). |
+
+ICRS and Galactic coordinates are converted to Az/El at runtime using [ERFA](https://github.com/liberfa/erfa).
+For `/track`, the `ra` and `dec` fields hold the first and second coordinate regardless of system (e.g. Galactic l and b).
+
 ## Commands
 
 ### `/abort`

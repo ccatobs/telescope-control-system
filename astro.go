@@ -76,6 +76,14 @@ func AzEl2RADec(unixtime, az, el float64) (float64, float64, error) {
 	return rad2deg(float64(ra)), rad2deg(float64(dec)), err
 }
 
+// GalLonLat2AzEl converts Galactic longitude/latitude to topocentric Az/El.
+// All angles are in degrees.
+func GalLonLat2AzEl(unixtime, gl, gb float64) (float64, float64, error) {
+	var ra, dec C.double
+	C.eraG2icrs(C.double(deg2rad(gl)), C.double(deg2rad(gb)), &ra, &dec)
+	return RADec2AzEl(unixtime, rad2deg(float64(ra)), rad2deg(float64(dec)))
+}
+
 // RADec2AzEl converts ICRS RA/Dec to topocentric (i.e., unrefracted) Az/El.
 // All angles are in degrees.
 func RADec2AzEl(unixtime, ra, dec float64) (float64, float64, error) {
