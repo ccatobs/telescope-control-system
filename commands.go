@@ -249,8 +249,8 @@ func (cmd pathCmd) Check() error {
 
 	// ACU Extension ICD v1.3, section 3:
 	// Program track should start at least 5 seconds in future;
-	// we'll pad it to 10 seconds for now
-	if time.Until(jsontime(cmd.StartTime)) < 10*time.Second {
+	// we'll pad it to ~10 seconds for now
+	if time.Until(jsontime(cmd.StartTime)) < 9800*time.Millisecond {
 		return fmt.Errorf("program track starts too soon (< 10 seconds from now)")
 	}
 
