@@ -247,9 +247,16 @@ func (cmd pathCmd) Check() error {
 		return fmt.Errorf("no points in path")
 	}
 
+	// ACU Extension ICD v1.3, section 3:
+	// Program track should start at least 5 seconds in future;
+	// we'll pad it to 10 seconds for now
+	if time.Until(jsontime(cmd.StartTime)) < 10*time.Second {
+		return fmt.Errorf("program track starts too soon (< 10 seconds from now)")
+	}
+
 	// check the times
 	for i := 1; i < len(cmd.Points); i++ {
-		// ACU ICD 2.0, section 8.9.3:
+		// ACU ICD v2.0, section 8.9.3:
 		// "The minimum time interval between two samples is 0.05 s."
 		if cmd.Points[i][0]-cmd.Points[i-1][0] < 0.05 {
 			return fmt.Errorf("points are separated by less than 50 ms")
