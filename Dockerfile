@@ -1,5 +1,9 @@
 FROM golang:1
-RUN apt-get update && apt-get install -y autoconf automake xz-utils
+RUN apt-get update && apt-get install -y \
+    autoconf \
+    automake \
+    libtool \
+    xz-utils
 
 WORKDIR /go/src/github.com/ccatobs/telescope-control-system
 
