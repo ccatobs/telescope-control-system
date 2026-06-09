@@ -226,7 +226,7 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSamp
 		}
 	case "Galactic":
 		var err error
-		unixtime := float64(t.UnixNano()) * 1e-9
+		unixtime := Time2Unixtime(t)
 		az, el, err = GalLonLat2AzEl(unixtime, track.ra, track.dec)
 		log.Printf("%f L:%3.2f B:%3.2f AZ:%3.2f EL:%3.2f", unixtime, track.ra, track.dec, az, el)
 		if err != nil {
