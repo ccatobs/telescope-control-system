@@ -1,4 +1,6 @@
 FROM golang:1
+RUN apt-get update && apt-get install -y xz-utils
+
 WORKDIR /go/src/github.com/ccatobs/telescope-control-system
 
 RUN mkdir /root/.ssh/
