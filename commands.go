@@ -28,6 +28,15 @@ const (
 	elevationJerkMax  = 6.0 // [deg/sec^3]
 )
 
+func checkCoordsys(s string) error {
+	switch s {
+	case "Horizon", "ICRS", "Galactic":
+		return nil
+	default:
+		return fmt.Errorf("bad coordinate system: %s", s)
+	}
+}
+
 func checkAzEl(az, el, vaz, vel float64) error {
 	if az < azimuthMin || az > azimuthMax {
 		return fmt.Errorf("commanded azimuth (%g) out of range [%g,%g]", az, azimuthMin, azimuthMax)
@@ -206,12 +215,8 @@ type trackCmd struct {
 }
 
 func (cmd trackCmd) Check() error {
-	switch cmd.Coordsys {
-	case "Galactic":
-	case "Horizon":
-	case "ICRS":
-	default:
-		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
+	if err := checkCoordsys(cmd.Coordsys); err != nil {
+		return err
 	}
 	if cmd.StopTime < cmd.StartTime {
 		return fmt.Errorf("bad times: start=%f, stop=%f", cmd.StartTime, cmd.StopTime)
@@ -234,12 +239,8 @@ type pathCmd struct {
 }
 
 func (cmd pathCmd) Check() error {
-	switch cmd.Coordsys {
-	case "Galactic":
-	case "Horizon":
-	case "ICRS":
-	default:
-		return fmt.Errorf("bad coordinate system: %s", cmd.Coordsys)
+	if err := checkCoordsys(cmd.Coordsys); err != nil {
+		return err
 	}
 
 	if len(cmd.Points) == 0 {
