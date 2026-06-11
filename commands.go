@@ -53,6 +53,16 @@ func checkAzEl(az, el, vaz, vel float64) error {
 	return nil
 }
 
+// ACU Extension ICD v1.3, section 3:
+// Program track should start at least 5 seconds in future;
+// we'll pad it to ~10 seconds for now
+func checkProgramTrackStartTime(startTime float64) error {
+	if time.Until(jsontime(startTime)) < 9800*time.Millisecond {
+		return fmt.Errorf("program track starts too soon (< 10 seconds from now)")
+	}
+	return nil
+}
+
 type IsDoneFunc func(*Telescope) (bool, error)
 
 type Command interface {
@@ -150,6 +160,10 @@ type azScanCmd struct {
 
 func (cmd azScanCmd) Check() error {
 	// XXX:TBD
+	if err := checkProgramTrackStartTime(cmd.StartTime); err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -218,6 +232,11 @@ func (cmd trackCmd) Check() error {
 	if err := checkCoordsys(cmd.Coordsys); err != nil {
 		return err
 	}
+
+	if err := checkProgramTrackStartTime(cmd.StartTime); err != nil {
+		return err
+	}
+
 	if cmd.StopTime < cmd.StartTime {
 		return fmt.Errorf("bad times: start=%f, stop=%f", cmd.StartTime, cmd.StopTime)
 	}
@@ -243,15 +262,12 @@ func (cmd pathCmd) Check() error {
 		return err
 	}
 
-	if len(cmd.Points) == 0 {
-		return fmt.Errorf("no points in path")
+	if err := checkProgramTrackStartTime(cmd.StartTime); err != nil {
+		return err
 	}
 
-	// ACU Extension ICD v1.3, section 3:
-	// Program track should start at least 5 seconds in future;
-	// we'll pad it to ~10 seconds for now
-	if time.Until(jsontime(cmd.StartTime)) < 9800*time.Millisecond {
-		return fmt.Errorf("program track starts too soon (< 10 seconds from now)")
+	if len(cmd.Points) == 0 {
+		return fmt.Errorf("no points in path")
 	}
 
 	// check the times
