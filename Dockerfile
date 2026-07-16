@@ -16,7 +16,7 @@ RUN git config --global url.ssh://git@github.com/ccatobs/.insteadOf https://gith
 
 COPY . .
 RUN ./build-deps
-RUN GOPRIVATE=github.com/ccatobs go get -d -v
+RUN GOPRIVATE=github.com/ccatobs go get -v
 RUN go test -v
 RUN go install -a -v -tags netgo -ldflags=-extldflags=-static
 
