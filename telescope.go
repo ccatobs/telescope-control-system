@@ -11,6 +11,9 @@ import (
 	"github.com/ccatobs/antenna-control-unit/datasets"
 )
 
+// largest ACU - TCS clock difference CalibrateTime will correct for
+const maxClockOffset = 24 * time.Hour
+
 // Telescope provides a higher-level interface to the ACU.
 // Responsible for pointing corrections and coordinate transformations.
 type Telescope struct {
@@ -35,20 +38,23 @@ func (t Telescope) Status() *datasets.StatusGeneral8100 {
 	return &t.rec
 }
 
-func statusTime(t time.Time) (uint32, float64) {
-	doy, tod := VertexTime(t)
-	return uint32(t.UTC().Year()), float64(doy) + tod/(24*60*60)
+// statusTime returns the time of an ACU status record,
+// whose Time field is the fractional day-of-year.
+func statusTime(rec *datasets.StatusGeneral8100) time.Time {
+	doy, frac := math.Modf(rec.Time)
+	return acuTime(int(rec.Year), int32(doy), frac*24*60*60)
 }
 
 func (t *Telescope) CalibrateTime() error {
-	y, d := statusTime(time.Now())
-	dy := t.rec.Year - y
-	if dy != 0 {
-		return fmt.Errorf("ACU/TCS clock mismatch: %d years", dy)
+	if t.rec.Year == 0 {
+		return fmt.Errorf("can't calibrate time: can't contact ACU")
 	}
-	dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
-	slog.Info(fmt.Sprintf("ACU - TCS clock difference: %g seconds", dt))
-	t.pointing.tOffset = Seconds2Duration(dt)
+	offset := statusTime(&t.rec).Sub(time.Now())
+	if offset.Abs() > maxClockOffset {
+		return fmt.Errorf("ACU/TCS clock mismatch too large to correct: %v", offset)
+	}
+	slog.Info("ACU - TCS clock difference", "offset", offset)
+	t.pointing.tOffset = offset
 	return nil
 }
 
@@ -57,11 +63,9 @@ func (t Telescope) Ready() error {
 		return fmt.Errorf("can't contact ACU")
 	}
 	if t.rec.Year > 2024 {
-		y, d := statusTime(time.Now().Add(t.pointing.tOffset))
-		dy := t.rec.Year - y
-		dt := math.Abs(t.rec.Time-d) * 24 * 60 * 60
-		if dy != 0 || dt > 2 {
-			return fmt.Errorf("ACU & TCS clock mismatch: %d years, %g seconds", dy, dt)
+		mismatch := statusTime(&t.rec).Sub(time.Now().Add(t.pointing.tOffset))
+		if mismatch.Abs() > 2*time.Second {
+			return fmt.Errorf("ACU & TCS clock mismatch: %v", mismatch)
 		}
 	}
 	if !t.rec.Remote {
@@ -148,7 +152,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			}
 
 			pt := &pts[n]
-			pt.Day, pt.TimeOfDay = VertexTime(rawT)
+			pt.Day, pt.TimeOfDay = programTrackTime(rawT)
 			pt.AzPosition = rawAz
 			pt.ElPosition = rawEl
 			pt.AzVelocity = rawVaz

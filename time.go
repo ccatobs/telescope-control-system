@@ -5,12 +5,24 @@ import (
 	"time"
 )
 
-func VertexTime(t time.Time) (int32, float64) {
+func programTrackTime(t time.Time) (int32, float64) {
+	_, doy, tod := acuTimeParts(t)
+	return doy, tod
+}
+
+// acuTime converts a (year, day-of-year, seconds-of-day) ACU time to a time.Time.
+// Day-of-year is 1-based, i.e., January 1 is day 1.
+func acuTime(year int, doy int32, tod float64) time.Time {
+	return time.Date(year, time.January, int(doy), 0, 0, 0, 0, time.UTC).Add(Seconds2Duration(tod))
+}
+
+// acuTimeParts is the inverse of acuTime.
+func acuTimeParts(t time.Time) (int, int32, float64) {
 	utc := t.UTC()
 	doy := utc.YearDay()
 	h, m, s := utc.Clock()
 	ns := utc.Nanosecond()
-	return int32(doy), float64(60*(60*h+m)+s) + float64(ns)*1e-9
+	return utc.Year(), int32(doy), float64(60*(60*h+m)+s) + float64(ns)*1e-9
 }
 
 func Unixtime2Time(unixtime float64) time.Time {
