@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 	"log/slog"
 	"math"
 	"os"
@@ -118,7 +117,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 	for {
 		err := t.acu.StatusGeneral8100Get(&status)
 		if err != nil {
-			log.Print("failed to get ACU status: ", err)
+			slog.Error("failed to get ACU status", "err", err)
 			return err
 		}
 		nmax := int(status.QtyOfFreeProgramTrackStackPositions)
@@ -132,7 +131,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 			x := &samples[n]
 			err := pattern.Next(iter, x)
 			if err != nil {
-				log.Printf("pattern error: %v", err)
+				slog.Error("pattern error", "err", err)
 				break
 			}
 
@@ -168,7 +167,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		}
 
 		total += n
-		log.Printf("upload: adding %d points", n)
+		slog.Info("upload: adding points", "n", n)
 		err = t.acu.ProgramTrackAdd(pts[:n])
 		if err != nil {
 			return err
@@ -184,24 +183,24 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 				Points: samples[:n],
 			})
 			if err != nil {
-				log.Printf("upload: %s", err)
+				slog.Warn("upload: housekeeping post failed", "err", err)
 				// ignore error
 			}
 		}
 
 		if pattern.Done(iter) {
-			log.Printf("upload: done, %d points total", total)
+			slog.Info("upload: done", "total", total)
 			return nil
 		}
 
 		// sleep until we can upload the next batch
 		lastT := samples[n-1].T
 		wait := time.Until(lastT) / 2
-		log.Printf("upload: next batch in %.3g minutes", wait.Minutes())
+		slog.Info("upload: waiting for next batch", "wait", wait.Round(time.Second))
 		select {
 		case <-time.After(wait):
 		case <-ctx.Done():
-			log.Print("upload: cancelled")
+			slog.Info("upload: cancelled")
 			return nil
 		}
 	}

@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 	"time"
 
@@ -124,7 +124,7 @@ func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 	t0 := time.Now()
 	rec := tel.Status()
 	timeout := estimateMoveTime(cmd.Azimuth, rec.AzimuthCurrentPosition, cmd.Elevation, rec.ElevationCurrentPosition)
-	log.Printf("estimated move time: %g secs", timeout.Seconds())
+	slog.Info("estimated move time", "timeout", timeout.Round(time.Millisecond))
 	err := tel.MoveTo(cmd.Azimuth, cmd.Elevation)
 	isDone := func(tel *Telescope) (bool, error) {
 		rec := tel.Status()

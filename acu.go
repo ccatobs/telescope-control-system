@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"fmt"
 	"io"
-	"log"
 	"log/slog"
 	"mime/multipart"
 	"net/http"
@@ -108,7 +107,7 @@ func (acu *ACU) getMonitor(path string) ([]byte, error) {
 }
 
 func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
-	log.Printf("ACU: POST %s", path)
+	slog.Info("ACU: POST", "path", path)
 	req, err := acu.newRequest("POST", path, body)
 	if err != nil {
 		return nil, err

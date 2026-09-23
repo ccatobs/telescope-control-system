@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"log/slog"
 	"math"
 	"net/http"
@@ -184,7 +183,7 @@ func main() {
 						logError(err)
 					}
 				case c := <-abort:
-					log.Print("ignoring abort")
+					slog.Info("ignoring abort: no command running")
 					c <- false
 				}
 			}
@@ -445,6 +444,8 @@ func main() {
 		ReadTimeout:  connectionTimeout,
 		WriteTimeout: connectionTimeout,
 	}
-	log.Printf("listening on %s\n", server.Addr)
-	log.Fatal(server.ListenAndServe())
+	slog.Info("listening", "addr", server.Addr)
+	err = server.ListenAndServe()
+	slog.Error(err.Error())
+	os.Exit(1)
 }

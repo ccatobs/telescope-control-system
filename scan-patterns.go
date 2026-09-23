@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"math"
 	"time"
 )
@@ -155,7 +155,7 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample
 		ut := Time2Unixtime(t)
 		az, el, err = RADec2AzEl(ut, x[1], x[2])
 		// XXX:TBD velocities
-		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", ut, x[1], x[2], az, el)
+		slog.Debug("path point", "t", ut, "ra", x[1], "dec", x[2], "az", az, "el", el)
 		if err != nil {
 			return err
 		}
@@ -164,7 +164,7 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample
 		ut := Time2Unixtime(t)
 		az, el, err = GalLonLat2AzEl(ut, x[1], x[2])
 		// XXX:TBD velocities
-		log.Printf("%f L:%3.2f B:%3.2f AZ:%3.2f EL:%3.2f", ut, x[1], x[2], az, el)
+		slog.Debug("path point", "t", ut, "l", x[1], "b", x[2], "az", az, "el", el)
 		if err != nil {
 			return err
 		}
@@ -220,7 +220,7 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSamp
 		var err error
 		unixtime := float64(t.UnixNano()) * 1e-9
 		az, el, err = RADec2AzEl(unixtime, track.ra, track.dec)
-		log.Printf("%f RA:%3.2f DEC:%3.2f AZ:%3.2f EL:%3.2f", unixtime, track.ra, track.dec, az, el)
+		slog.Debug("track point", "t", unixtime, "ra", track.ra, "dec", track.dec, "az", az, "el", el)
 		if err != nil {
 			return err
 		}
@@ -228,7 +228,7 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSamp
 		var err error
 		unixtime := Time2Unixtime(t)
 		az, el, err = GalLonLat2AzEl(unixtime, track.ra, track.dec)
-		log.Printf("%f L:%3.2f B:%3.2f AZ:%3.2f EL:%3.2f", unixtime, track.ra, track.dec, az, el)
+		slog.Debug("track point", "t", unixtime, "l", track.ra, "b", track.dec, "az", az, "el", el)
 		if err != nil {
 			return err
 		}
