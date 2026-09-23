@@ -9,6 +9,7 @@ import (
 	"math"
 	"net/http"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -40,12 +41,46 @@ func logError(err error) {
 	}
 }
 
-func jsonResponse(w http.ResponseWriter, err error, statusCode int) {
+func logNewCmd(id uint64, desc string) {
+	if len(desc) > 200 {
+		desc = fmt.Sprintf("%.200s...", desc)
+	}
+	slog.Info("got command", "cmd", id, "desc", desc)
+}
+
+func logCmdError(id uint64, err error) {
+	if err != nil {
+		slog.Error(err.Error(), "cmd", id)
+	}
+}
+
+// Command IDs come from a simple incrementing counter. It's seeded with
+// the startup time in milliseconds, so IDs stay unique across restarts.
+var lastCmdID atomic.Uint64
+
+func init() {
+	lastCmdID.Store(uint64(time.Now().UnixMilli()))
+}
+
+func newCmdID() uint64 {
+	return lastCmdID.Add(1)
+}
+
+// queuedCmd is a Command tagged with its ID.
+type queuedCmd struct {
+	id  uint64
+	cmd Command
+}
+
+// jsonResponse writes a status response. A nonzero id is included in the response.
+func jsonResponse(w http.ResponseWriter, id uint64, err error, statusCode int) {
 	var response struct {
-		S string `json:"status"`
-		M string `json:"message,omitempty"`
+		S  string `json:"status"`
+		ID uint64 `json:"id,omitempty"`
+		M  string `json:"message,omitempty"`
 	}
 
+	response.ID = id
 	if err != nil {
 		response.S = "error"
 		response.M = err.Error()
@@ -128,7 +163,7 @@ func main() {
 	tel.pointing.elOffset = 0
 
 	// command queue
-	cmds := make(chan Command)
+	cmds := make(chan queuedCmd)
 
 	// abort signal
 	abort := make(chan chan bool)
@@ -137,11 +172,11 @@ func main() {
 	go func() {
 		for {
 			// wait for command
-			var cmd Command
+			var qc queuedCmd
 		waitForCmdLoop:
 			for {
 				select {
-				case cmd = <-cmds:
+				case qc = <-cmds:
 					break waitForCmdLoop
 				case <-time.After(statusUpdateDuration):
 					err := tel.UpdateStatus()
@@ -154,14 +189,11 @@ func main() {
 				}
 			}
 
-			desc := fmt.Sprintf("%#v", cmd)
-			if len(desc) > 200 {
-				desc = fmt.Sprintf("%.200s...", desc)
-			}
-			log.Printf("got command: %s", desc)
+			cmd := qc.cmd
+			logNewCmd(qc.id, fmt.Sprintf("%#v", cmd))
 
 			if err := tel.Ready(); err != nil {
-				logError(err)
+				logCmdError(qc.id, err)
 				continue
 			}
 
@@ -169,7 +201,7 @@ func main() {
 			ctx, cancel := context.WithCancel(context.Background())
 			isDone, err := cmd.Start(ctx, tel)
 			if err != nil {
-				logError(err)
+				logCmdError(qc.id, err)
 				cancel()
 				continue
 			}
@@ -184,19 +216,19 @@ func main() {
 					}
 					done, err = isDone(tel)
 				case c := <-abort:
-					log.Print("aborting")
+					slog.Info("aborting command", "cmd", qc.id)
 					c <- true
 					done = true
 					cancel()
 					err = tel.Stop()
 				}
 				if err != nil {
-					logError(err)
+					logCmdError(qc.id, err)
 					break
 				}
 			}
 
-			log.Printf("command done: %s", desc)
+			slog.Info("command done", "cmd", qc.id)
 		}
 	}()
 
@@ -209,14 +241,17 @@ func main() {
 		if err == nil {
 			statusCode = http.StatusOK
 		}
-		jsonResponse(w, err, statusCode)
+		jsonResponse(w, 0, err, statusCode)
 	}))
 
 	mux.HandleFunc("/abort", func(w http.ResponseWriter, req *http.Request) {
 		var err error
 		var statusCode int
 
+		var id uint64
 		if req.Method == "POST" {
+			id = newCmdID()
+			logNewCmd(id, "abort")
 			c := make(chan bool)
 			abort <- c
 			if <-c {
@@ -230,20 +265,20 @@ func main() {
 			statusCode = http.StatusMethodNotAllowed
 		}
 
-		jsonResponse(w, err, statusCode)
+		jsonResponse(w, id, err, statusCode)
 	})
 
 	mux.HandleFunc("/acu/status", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" {
 			err := fmt.Errorf("method not GET")
-			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
 			return
 		}
 
 		var rec datasets.StatusGeneral8100
 		err := acu.StatusGeneral8100Get(&rec)
 		if err != nil {
-			jsonResponse(w, err, http.StatusInternalServerError)
+			jsonResponse(w, 0, err, http.StatusInternalServerError)
 			return
 		}
 
@@ -264,55 +299,60 @@ func main() {
 	mux.HandleFunc("/acu/failure-reset", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "POST" {
 			err := fmt.Errorf("method not POST")
-			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
 			return
 		}
 
+		id := newCmdID()
+		logNewCmd(id, "acu failure reset")
 		err := acu.FailureReset()
 		status := http.StatusOK
 		if err != nil {
 			status = http.StatusInternalServerError
 		}
-		jsonResponse(w, err, status)
+		jsonResponse(w, id, err, status)
 	})
 
 	mux.HandleFunc("/acu/reboot", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "POST" {
 			err := fmt.Errorf("method not POST")
-			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
 			return
 		}
 
+		id := newCmdID()
+		logNewCmd(id, "acu reboot")
 		err := acu.Reboot()
 		status := http.StatusOK
 		if err != nil {
 			status = http.StatusInternalServerError
 		}
-		jsonResponse(w, err, status)
+		jsonResponse(w, id, err, status)
 	})
 
 	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
 		var statusCode int
 		if req.Method != "POST" {
 			err := fmt.Errorf("method not POST")
-			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
 			return
 		}
-		log.Print("clearing program track stack")
+		id := newCmdID()
+		logNewCmd(id, "clear program track stack")
 		err := acu.ProgramTrackClear()
 		if err != nil {
-			logError(err)
+			logCmdError(id, err)
 			statusCode = http.StatusBadRequest
 		} else {
 			statusCode = http.StatusOK
 		}
-		jsonResponse(w, err, statusCode)
+		jsonResponse(w, id, err, statusCode)
 	})
 
 	mux.HandleFunc("/telescope-position", func(w http.ResponseWriter, req *http.Request) {
 		if req.Method != "GET" {
 			err := fmt.Errorf("method not GET")
-			jsonResponse(w, err, http.StatusMethodNotAllowed)
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
 			return
 		}
 		err := json.NewEncoder(w).Encode(&tel_pos)
@@ -323,6 +363,7 @@ func main() {
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		var cmd Command
+		var id uint64
 		var err error
 		var statusCode int
 
@@ -357,6 +398,7 @@ func main() {
 				statusCode = http.StatusNotFound
 				goto respond
 			}
+			id = newCmdID()
 			if err != nil {
 				statusCode = http.StatusBadRequest
 				goto respond
@@ -384,7 +426,7 @@ func main() {
 
 		// queue command
 		select {
-		case cmds <- cmd:
+		case cmds <- queuedCmd{id, cmd}:
 		case <-time.After(commandBusyTimeout):
 			err = fmt.Errorf("busy")
 			statusCode = http.StatusServiceUnavailable
@@ -393,7 +435,7 @@ func main() {
 
 		statusCode = http.StatusOK
 	respond:
-		jsonResponse(w, err, statusCode)
+		jsonResponse(w, id, err, statusCode)
 	})
 
 	// start accepting commands

@@ -56,6 +56,17 @@ For `/track`, the `ra` and `dec` fields hold the first and second coordinate reg
 
 ## Commands
 
+Command responses are JSON, and include a TCS-generated command `id`:
+
+```json
+{"status":"ok","id":1790171339199}
+{"status":"error","id":1790171339200,"message":"commanded azimuth (1000) out of range [-180,360]"}
+```
+
+IDs are assigned to every recognized `POST` command, including rejected ones,
+and also appear in the TCS log. They increase monotonically, and are seeded
+from the startup time (in milliseconds) so they stay unique across restarts.
+
 ### `/abort`
 
 Abort the current command.
