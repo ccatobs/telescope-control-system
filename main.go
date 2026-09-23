@@ -1,13 +1,17 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log/slog"
 	"math"
 	"net/http"
 	"os"
+	"slices"
+	"strings"
 	"sync/atomic"
 	"time"
 
@@ -40,11 +44,11 @@ func logError(err error) {
 	}
 }
 
-func logNewCmd(id uint64, desc string) {
+func logNewCmd(id uint64, desc string, tags Tags) {
 	if len(desc) > 200 {
 		desc = fmt.Sprintf("%.200s...", desc)
 	}
-	slog.Info("got command", "cmd", id, "desc", desc)
+	slog.Info("got command", "cmd", id, "desc", desc, "tags", tags)
 }
 
 func logCmdError(id uint64, err error) {
@@ -65,10 +69,91 @@ func newCmdID() uint64 {
 	return lastCmdID.Add(1)
 }
 
-// queuedCmd is a Command tagged with its ID.
+// Tags are user-supplied key/value pairs attached to a command.
+type Tags map[string]string
+
+// limits on user-supplied tags
+const (
+	maxTags        = 16
+	maxTagKeyLen   = 64
+	maxTagValueLen = 256
+)
+
+func (tags Tags) Check() error {
+	if len(tags) > maxTags {
+		return fmt.Errorf("too many tags (%d > %d)", len(tags), maxTags)
+	}
+	for k, v := range tags {
+		if k == "" {
+			return fmt.Errorf("empty tag key")
+		}
+		if len(k) > maxTagKeyLen {
+			return fmt.Errorf("tag key %.20q... too long (%d > %d bytes)", k, len(k), maxTagKeyLen)
+		}
+		if len(v) > maxTagValueLen {
+			return fmt.Errorf("tag %q value too long (%d > %d bytes)", k, len(v), maxTagValueLen)
+		}
+	}
+	return nil
+}
+
+// LogValue logs tags as a group, e.g. tags.key=val, sorted by key.
+func (tags Tags) LogValue() slog.Value {
+	attrs := make([]slog.Attr, 0, len(tags))
+	for k, v := range tags {
+		attrs = append(attrs, slog.String(k, v))
+	}
+	slices.SortFunc(attrs, func(a, b slog.Attr) int { return strings.Compare(a.Key, b.Key) })
+	return slog.GroupValue(attrs...)
+}
+
+// decodeCmdBody decodes a JSON command body into v, rejecting unknown fields,
+// and returns the tags from its optional "tags" field.
+func decodeCmdBody(body io.Reader, v any) (Tags, error) {
+	var fields map[string]json.RawMessage
+	err := json.NewDecoder(body).Decode(&fields)
+	if err != nil {
+		return nil, err
+	}
+
+	var tags Tags
+	if raw, ok := fields["tags"]; ok {
+		err = json.Unmarshal(raw, &tags)
+		if err == nil {
+			err = tags.Check()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("bad tags: %w", err)
+		}
+		delete(fields, "tags")
+	}
+
+	rest, err := json.Marshal(fields)
+	if err != nil {
+		return nil, err
+	}
+	dec := json.NewDecoder(bytes.NewReader(rest))
+	dec.DisallowUnknownFields()
+	return tags, dec.Decode(v)
+}
+
+// checkNoBody returns an error if a command which takes no parameters has a body.
+func checkNoBody(body io.Reader) error {
+	b, err := io.ReadAll(io.LimitReader(body, 1))
+	if err != nil {
+		return err
+	}
+	if len(b) > 0 {
+		return fmt.Errorf("command takes no parameters")
+	}
+	return nil
+}
+
+// queuedCmd is a Command tagged with its ID and user tags.
 type queuedCmd struct {
-	id  uint64
-	cmd Command
+	id   uint64
+	tags Tags
+	cmd  Command
 }
 
 // jsonResponse writes a status response. A nonzero id is included in the response.
@@ -89,7 +174,9 @@ func jsonResponse(w http.ResponseWriter, id uint64, err error, statusCode int) {
 	}
 
 	w.WriteHeader(statusCode)
-	err = json.NewEncoder(w).Encode(response)
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	err = enc.Encode(response)
 	if err != nil {
 		logError(err)
 	}
@@ -189,7 +276,7 @@ func main() {
 			}
 
 			cmd := qc.cmd
-			logNewCmd(qc.id, fmt.Sprintf("%#v", cmd))
+			logNewCmd(qc.id, fmt.Sprintf("%#v", cmd), qc.tags)
 
 			if err := tel.Ready(); err != nil {
 				logCmdError(qc.id, err)
@@ -250,7 +337,12 @@ func main() {
 		var id uint64
 		if req.Method == "POST" {
 			id = newCmdID()
-			logNewCmd(id, "abort")
+			err = checkNoBody(req.Body)
+			if err != nil {
+				jsonResponse(w, id, err, http.StatusBadRequest)
+				return
+			}
+			logNewCmd(id, "abort", nil)
 			c := make(chan bool)
 			abort <- c
 			if <-c {
@@ -303,8 +395,13 @@ func main() {
 		}
 
 		id := newCmdID()
-		logNewCmd(id, "acu failure reset")
-		err := acu.FailureReset()
+		err := checkNoBody(req.Body)
+		if err != nil {
+			jsonResponse(w, id, err, http.StatusBadRequest)
+			return
+		}
+		logNewCmd(id, "acu failure reset", nil)
+		err = acu.FailureReset()
 		status := http.StatusOK
 		if err != nil {
 			status = http.StatusInternalServerError
@@ -320,8 +417,13 @@ func main() {
 		}
 
 		id := newCmdID()
-		logNewCmd(id, "acu reboot")
-		err := acu.Reboot()
+		err := checkNoBody(req.Body)
+		if err != nil {
+			jsonResponse(w, id, err, http.StatusBadRequest)
+			return
+		}
+		logNewCmd(id, "acu reboot", nil)
+		err = acu.Reboot()
 		status := http.StatusOK
 		if err != nil {
 			status = http.StatusInternalServerError
@@ -337,8 +439,13 @@ func main() {
 			return
 		}
 		id := newCmdID()
-		logNewCmd(id, "clear program track stack")
-		err := acu.ProgramTrackClear()
+		err := checkNoBody(req.Body)
+		if err != nil {
+			jsonResponse(w, id, err, http.StatusBadRequest)
+			return
+		}
+		logNewCmd(id, "clear program track stack", nil)
+		err = acu.ProgramTrackClear()
 		if err != nil {
 			logCmdError(id, err)
 			statusCode = http.StatusBadRequest
@@ -363,34 +470,33 @@ func main() {
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		var cmd Command
 		var id uint64
+		var tags Tags
 		var err error
 		var statusCode int
 
 		// parse command
 		if req.Method == "POST" {
-			dec := json.NewDecoder(req.Body)
-			dec.DisallowUnknownFields()
 			endpoint := req.URL.Path
 			switch endpoint {
 			case "/acu/position-broadcast":
 				var x enablePositionBroadcastCmd
-				err = dec.Decode(&x)
+				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
 			case "/azimuth-scan":
 				var x azScanCmd
-				err = dec.Decode(&x)
+				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
 			case "/move-to":
 				var x moveToCmd
-				err = dec.Decode(&x)
+				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
 			case "/path":
 				var x pathCmd
-				err = dec.Decode(&x)
+				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
 			case "/track":
 				var x trackCmd
-				err = dec.Decode(&x)
+				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
 			default:
 				err = fmt.Errorf("bad endpoint: %s", endpoint)
@@ -425,7 +531,7 @@ func main() {
 
 		// queue command
 		select {
-		case cmds <- queuedCmd{id, cmd}:
+		case cmds <- queuedCmd{id, tags, cmd}:
 		case <-time.After(commandBusyTimeout):
 			err = fmt.Errorf("busy")
 			statusCode = http.StatusServiceUnavailable

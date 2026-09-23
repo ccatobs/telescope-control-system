@@ -67,6 +67,15 @@ IDs are assigned to every recognized `POST` command, including rejected ones,
 and also appear in the TCS log. They increase monotonically, and are seeded
 from the startup time (in milliseconds) so they stay unique across restarts.
 
+Commands which take parameters may include an optional `tags` object of string
+key/value pairs, which are logged along with the command ID. There may be at
+most 16 tags, with non-empty keys of at most 64 bytes, and values of at most 256
+bytes.
+
+```sh
+curl 'localhost:5600/move-to' -d '{"azimuth": 120, "elevation": 45, "tags": {"scan": "s42"}}'
+```
+
 ### `/abort`
 
 Abort the current command.
