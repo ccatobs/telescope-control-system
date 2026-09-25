@@ -103,8 +103,8 @@ func (cmd enablePositionBroadcastCmd) Start(ctx context.Context, t *Telescope) (
  */
 
 type moveToCmd struct {
-	Azimuth   float64
-	Elevation float64
+	Azimuth   float64 `json:"azimuth"`
+	Elevation float64 `json:"elevation"`
 }
 
 func (cmd moveToCmd) Check() error {
@@ -223,9 +223,9 @@ func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 type trackCmd struct {
 	StartTime float64 `json:"start_time"`
 	StopTime  float64 `json:"stop_time"`
-	RA        float64
-	Dec       float64
-	Coordsys  string
+	RA        float64 `json:"ra"`
+	Dec       float64 `json:"dec"`
+	Coordsys  string  `json:"coordsys"`
 }
 
 func (cmd trackCmd) Check() error {
@@ -252,9 +252,9 @@ func (cmd trackCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, erro
 }
 
 type pathCmd struct {
-	Coordsys  string
-	Points    [][5]float64
-	StartTime float64 `json:"start_time"`
+	Coordsys  string       `json:"coordsys"`
+	Points    [][5]float64 `json:"points"`
+	StartTime float64      `json:"start_time"`
 }
 
 func (cmd pathCmd) Check() error {

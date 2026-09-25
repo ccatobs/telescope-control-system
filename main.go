@@ -149,11 +149,49 @@ func checkNoBody(body io.Reader) error {
 	return nil
 }
 
-// queuedCmd is a Command tagged with its ID and user tags.
+// queuedCmd is a Command tagged with its ID, endpoint, and user tags.
 type queuedCmd struct {
-	id   uint64
-	tags Tags
-	cmd  Command
+	id       uint64
+	endpoint string
+	tags     Tags
+	cmd      Command
+}
+
+// runningCmd describes the currently running command, as reported by /status.
+type runningCmd struct {
+	ID        uint64  `json:"id"`
+	Endpoint  string  `json:"endpoint"`
+	Params    any     `json:"params"`
+	Tags      Tags    `json:"tags,omitempty"`
+	StartTime float64 `json:"start_time"`
+}
+
+// statusParams returns the params of cmd to report in /status.
+// Paths can be long, so their points are replaced by a count.
+func statusParams(cmd Command) any {
+	if x, ok := cmd.(pathCmd); ok {
+		return struct {
+			Coordsys  string  `json:"coordsys"`
+			NumPoints int     `json:"num_points"`
+			StartTime float64 `json:"start_time"`
+		}{x.Coordsys, len(x.Points), x.StartTime}
+	}
+	return cmd
+}
+
+// statusResponse writes the /status response. A nil rc means no command is running.
+func statusResponse(w http.ResponseWriter, rc *runningCmd) {
+	response := struct {
+		S       string      `json:"status"`
+		Command *runningCmd `json:"command"`
+	}{"ok", rc}
+
+	enc := json.NewEncoder(w)
+	enc.SetEscapeHTML(false)
+	err := enc.Encode(response)
+	if err != nil {
+		logError(err)
+	}
 }
 
 // jsonResponse writes a status response. A nonzero id is included in the response.
@@ -254,6 +292,9 @@ func main() {
 	// abort signal
 	abort := make(chan chan bool)
 
+	// currently running command, or nil
+	var running atomic.Pointer[runningCmd]
+
 	// main loop
 	go func() {
 		for {
@@ -284,11 +325,19 @@ func main() {
 			}
 
 			// start command
+			running.Store(&runningCmd{
+				ID:        qc.id,
+				Endpoint:  qc.endpoint,
+				Params:    statusParams(cmd),
+				Tags:      qc.tags,
+				StartTime: Time2Unixtime(time.Now()),
+			})
 			ctx, cancel := context.WithCancel(context.Background())
 			isDone, err := cmd.Start(ctx, tel)
 			if err != nil {
 				logCmdError(qc.id, err)
 				cancel()
+				running.Store(nil)
 				continue
 			}
 
@@ -314,6 +363,7 @@ func main() {
 				}
 			}
 
+			running.Store(nil)
 			slog.Info("command done", "cmd", qc.id)
 		}
 	}()
@@ -329,6 +379,15 @@ func main() {
 		}
 		jsonResponse(w, 0, err, statusCode)
 	}))
+
+	mux.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" {
+			err := fmt.Errorf("method not GET")
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
+			return
+		}
+		statusResponse(w, running.Load())
+	})
 
 	mux.HandleFunc("/abort", func(w http.ResponseWriter, req *http.Request) {
 		var err error
@@ -531,7 +590,7 @@ func main() {
 
 		// queue command
 		select {
-		case cmds <- queuedCmd{id, tags, cmd}:
+		case cmds <- queuedCmd{id, req.URL.Path, tags, cmd}:
 		case <-time.After(commandBusyTimeout):
 			err = fmt.Errorf("busy")
 			statusCode = http.StatusServiceUnavailable

@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"maps"
+	"net/http/httptest"
 	"strings"
 	"testing"
 )
@@ -66,5 +67,44 @@ func TestCheckNoBody(t *testing.T) {
 	}
 	if err := checkNoBody(strings.NewReader(`{"tags": {"reason": "wind"}}`)); err == nil {
 		t.Error("non-empty body: expected error")
+	}
+}
+
+func TestStatusResponse(t *testing.T) {
+	w := httptest.NewRecorder()
+	statusResponse(w, nil)
+	if got, want := w.Body.String(), `{"status":"ok","command":null}`+"\n"; got != want {
+		t.Errorf("idle: got %q, want %q", got, want)
+	}
+
+	w = httptest.NewRecorder()
+	statusResponse(w, &runningCmd{
+		ID:        7,
+		Endpoint:  "/move-to",
+		Params:    moveToCmd{Azimuth: 120, Elevation: 45},
+		Tags:      Tags{"scan": "s42"},
+		StartTime: 1.5,
+	})
+	want := `{"status":"ok","command":{"id":7,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"start_time":1.5}}` + "\n"
+	if got := w.Body.String(); got != want {
+		t.Errorf("running: got %q, want %q", got, want)
+	}
+}
+
+func TestStatusParamsPath(t *testing.T) {
+	w := httptest.NewRecorder()
+	statusResponse(w, &runningCmd{
+		ID:       8,
+		Endpoint: "/path",
+		Params: statusParams(pathCmd{
+			Coordsys:  "ICRS",
+			Points:    [][5]float64{{0, 103, -33, 0.05, -0.05}, {60, 106, -36, 0.05, -0.05}},
+			StartTime: 1615586629,
+		}),
+		StartTime: 1.5,
+	})
+	want := `{"status":"ok","command":{"id":8,"endpoint":"/path","params":{"coordsys":"ICRS","num_points":2,"start_time":1615586629},"start_time":1.5}}` + "\n"
+	if got := w.Body.String(); got != want {
+		t.Errorf("got %q, want %q", got, want)
 	}
 }
