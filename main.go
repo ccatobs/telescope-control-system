@@ -163,7 +163,7 @@ type runningCmd struct {
 	Endpoint  string  `json:"endpoint"`
 	Params    any     `json:"params"`
 	Tags      Tags    `json:"tags,omitempty"`
-	StartTime float64 `json:"start_time"`
+	StartedAt float64 `json:"started_at"`
 }
 
 // statusParams returns the params of cmd to report in /status.
@@ -330,7 +330,7 @@ func main() {
 				Endpoint:  qc.endpoint,
 				Params:    statusParams(cmd),
 				Tags:      qc.tags,
-				StartTime: Time2Unixtime(time.Now()),
+				StartedAt: Time2Unixtime(time.Now()),
 			})
 			ctx, cancel := context.WithCancel(context.Background())
 			isDone, err := cmd.Start(ctx, tel)

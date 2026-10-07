@@ -198,7 +198,7 @@ curl -X POST 'localhost:5600/clear-track'
 ### `/status`
 
 Get the currently running command, or `null` if idle.
-`start_time` is the unixtime when the TCS began executing the command.
+`started_at` is the unixtime when the TCS began executing the command.
 For `/path` commands, `params` has `num_points` in place of the full `points` list.
 
 ```sh
@@ -206,7 +206,7 @@ curl 'localhost:5600/status'
 ```
 
 ```json
-{"status":"ok","command":{"id":1790171339201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"start_time":1790171340.12}}
+{"status":"ok","command":{"id":1790171339201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1790171340.12}}
 {"status":"ok","command":null}
 ```
 
