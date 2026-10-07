@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"log/slog"
+	"maps"
 	"math"
 	"net/http"
 	"os"
@@ -444,6 +445,49 @@ func main() {
 		if err != nil {
 			logError(err)
 		}
+	})
+
+	mux.HandleFunc("/acu/datasets", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" {
+			err := fmt.Errorf("method not GET")
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
+			return
+		}
+		err := json.NewEncoder(w).Encode(slices.Sorted(maps.Keys(acuDatasets)))
+		if err != nil {
+			logError(err)
+		}
+	})
+
+	mux.HandleFunc("/acu/datasets/{name}", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "GET" {
+			err := fmt.Errorf("method not GET")
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
+			return
+		}
+
+		name := req.PathValue("name")
+		newRec, ok := acuDatasets[name]
+		if !ok {
+			err := fmt.Errorf("unknown dataset: %s", name)
+			jsonResponse(w, 0, err, http.StatusNotFound)
+			return
+		}
+
+		rec := newRec()
+		err := acu.DatasetGet(name, rec)
+		if err != nil {
+			jsonResponse(w, 0, err, http.StatusInternalServerError)
+			return
+		}
+
+		b, err := json.Marshal(rec)
+		if err != nil {
+			jsonResponse(w, 0, err, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(append(b, '\n'))
 	})
 
 	mux.HandleFunc("/acu/failure-reset", func(w http.ResponseWriter, req *http.Request) {

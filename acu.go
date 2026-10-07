@@ -162,6 +162,31 @@ func (acu *ACU) DatasetGet(name string, d interface{}) error {
 	return binary.Read(r, binary.LittleEndian, d)
 }
 
+func newDataset[T any]() any { return new(T) }
+
+// acuDatasets maps dataset names to constructors for their records.
+var acuDatasets = map[string]func() any{
+	"BusStations":                   newDataset[datasets.BusStations],
+	"CmdPointingCorrection":         newDataset[datasets.CmdPointingCorrection],
+	"CmdSPEMParameter":              newDataset[datasets.CmdSPEMParameter],
+	"CmdSectorScanParameters":       newDataset[datasets.CmdSectorScanParameters],
+	"CmdStarTrackTransfer":          newDataset[datasets.CmdStarTrackTransfer],
+	"CmdTimePositionOffsetTransfer": newDataset[datasets.CmdTimePositionOffsetTransfer],
+	"CmdTimePositionTransfer":       newDataset[datasets.CmdTimePositionTransfer],
+	"CmdTwoLineTransfer":            newDataset[datasets.CmdTwoLineTransfer],
+	"CmdWeatherStation":             newDataset[datasets.CmdWeatherStation],
+	"HVAC":                          newDataset[datasets.HVAC],
+	"Lubrication":                   newDataset[datasets.Lubrication],
+	"SelfTest":                      newDataset[datasets.SelfTest],
+	"SelftestInterfaceInput":        newDataset[datasets.SelftestInterfaceInput],
+	"Shutter":                       newDataset[datasets.Shutter],
+	"StatusCCatDetailed8100":        newDataset[datasets.StatusCCatDetailed8100],
+	"StatusDetailedFaults":          newDataset[datasets.StatusDetailedFaults],
+	"StatusExtra8100":               newDataset[datasets.StatusExtra8100],
+	"StatusGeneral8100":             newDataset[datasets.StatusGeneral8100],
+	"SunAvoidance":                  newDataset[datasets.SunAvoidance],
+}
+
 // ModeSet changes the mode.
 func (acu *ACU) ModeSet(mode string) error {
 	switch mode {

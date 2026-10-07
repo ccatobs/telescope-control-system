@@ -121,6 +121,27 @@ Get the raw status of the ACU.
 curl 'localhost:5600/acu/status'
 ```
 
+### `/acu/datasets`
+
+List the names of the available ACU datasets.
+
+```sh
+curl 'localhost:5600/acu/datasets'
+```
+
+```json
+["BusStations","CmdPointingCorrection",...,"SunAvoidance"]
+```
+
+### `/acu/datasets/<name>`
+
+Get an ACU dataset as JSON, with field names and coded values as the ACU reports them.
+Undefined (NaN) values are `null`.
+
+```sh
+curl 'localhost:5600/acu/datasets/Shutter'
+```
+
 ### `/azimuth-scan`
 
 Scan repeatedly in azimuth, at constant elevation.
