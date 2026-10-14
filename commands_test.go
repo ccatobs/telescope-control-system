@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/binary"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -16,16 +17,25 @@ import (
 // fakeACU answers the ACU requests of a program-track upload,
 // and records the commands and the uploaded points.
 type fakeACU struct {
-	mu       sync.Mutex
-	free     int32 // free program-track stack positions
-	commands []string
-	uploads  [][]datasets.TimePositionTransfer
+	mu         sync.Mutex
+	free       int32         // free program-track stack positions
+	failUpload chan struct{} // if set, the next upload waits for it to close, then fails
+	commands   []string
+	uploads    [][]datasets.TimePositionTransfer
 }
 
 func newFakeACU(t *testing.T, free int32) (*fakeACU, *Telescope) {
 	f := &fakeACU{free: free}
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		f.mu.Lock()
+		hold := f.failUpload
+		if req.URL.Path == "/UploadPtStack" && hold != nil {
+			f.failUpload = nil
+			f.mu.Unlock()
+			<-hold
+			http.Error(w, "upload failed", http.StatusInternalServerError)
+			return
+		}
 		defer f.mu.Unlock()
 		switch req.URL.Path {
 		case "/Values":
@@ -243,6 +253,67 @@ func TestAppendPathTooMany(t *testing.T) {
 	res := appendPath(tel, path, points)
 	if res.status != http.StatusBadRequest || res.err == nil {
 		t.Errorf("got status %d, err %v; want %d", res.status, res.err, http.StatusBadRequest)
+	}
+	if len(acu.uploads) != 0 {
+		t.Errorf("points reached the ACU: %d uploads", len(acu.uploads))
+	}
+}
+
+// hookHandler calls fn for each log record, then logs it.
+type hookHandler struct {
+	slog.Handler
+	fn func(slog.Record)
+}
+
+func (h hookHandler) Enabled(context.Context, slog.Level) bool { return true }
+
+func (h hookHandler) Handle(ctx context.Context, r slog.Record) error {
+	h.fn(r)
+	return h.Handler.Handle(ctx, r)
+}
+
+// The path's upload can fail while appendPath checks the points. The append
+// must not go through then either.
+func TestAppendPathUploadFailsDuringCheck(t *testing.T) {
+	acu, tel := newFakeACU(t, 10000)
+	hold := make(chan struct{})
+	acu.mu.Lock()
+	acu.failUpload = hold // the path's upload hangs until hold closes, then fails
+	acu.mu.Unlock()
+	t.Cleanup(func() { uploadFailed.Store(false) })
+
+	cmd := pathCmd{Coordsys: "Horizon", Points: [][5]float64{{0, 120, 45, 0, 0}, {1, 120, 45, 0, 0}}, StartTime: Time2Unixtime(time.Now().Add(20 * time.Second))}
+	if _, err := cmd.Start(context.Background(), tel); err != nil {
+		t.Fatal(err)
+	}
+
+	// fail the path's upload while appendPath converts the first ICRS point
+	var once sync.Once
+	failed := false
+	old := slog.Default()
+	t.Cleanup(func() { slog.SetDefault(old) })
+	slog.SetDefault(slog.New(hookHandler{old.Handler(), func(r slog.Record) {
+		if r.Message != "path point" {
+			return
+		}
+		once.Do(func() {
+			close(hold)
+			for deadline := time.Now().Add(time.Second); time.Now().Before(deadline); time.Sleep(time.Millisecond) {
+				if activeUploads.Load() == 0 {
+					failed = uploadFailed.Load()
+					return
+				}
+			}
+		})
+	}}))
+
+	path := &runningPath{id: 42, t0: jsontime(cmd.StartTime), coordsys: "ICRS", lastT: 1}
+	res := appendPath(tel, path, [][5]float64{{2, 100, -30, 0, 0}})
+	if !failed {
+		t.Fatal("the path's upload did not fail during the append's checks")
+	}
+	if res.status != http.StatusConflict || res.err == nil {
+		t.Errorf("got status %d, err %v; want %d", res.status, res.err, http.StatusConflict)
 	}
 	if len(acu.uploads) != 0 {
 		t.Errorf("points reached the ACU: %d uploads", len(acu.uploads))

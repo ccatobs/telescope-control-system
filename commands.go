@@ -341,10 +341,6 @@ func appendPath(tel *Telescope, p *runningPath, points [][5]float64) appendResul
 	if p == nil {
 		return appendResult{0, http.StatusConflict, fmt.Errorf("no path running")}
 	}
-	// the path ends at the next status check; the stack lacks some of its points
-	if uploadFailed.Load() {
-		return appendResult{p.id, http.StatusConflict, fmt.Errorf("path upload failed")}
-	}
 	if len(points) == 0 {
 		return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("no points to append")}
 	}
@@ -375,6 +371,14 @@ func appendPath(tel *Telescope, p *runningPath, points [][5]float64) appendResul
 	// appended points must follow the path's own points on the stack
 	if activeUploads.Load() > 0 {
 		return appendResult{p.id, http.StatusServiceUnavailable, fmt.Errorf("path upload in progress")}
+	}
+	// Keep this check after the activeUploads check: the upload goroutine sets
+	// uploadFailed before it drops activeUploads, so with no upload running the
+	// flag is final. Read earlier, it misses an upload that fails meanwhile.
+	// After a failure, the path ends at the next status check, and the stack
+	// lacks some of its points.
+	if uploadFailed.Load() {
+		return appendResult{p.id, http.StatusConflict, fmt.Errorf("path upload failed")}
 	}
 
 	// UploadScanPattern waits between batches when the points don't fit the
