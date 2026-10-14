@@ -348,6 +348,10 @@ func appendPath(tel *Telescope, p *runningPath, points [][5]float64) appendResul
 	if len(points) == 0 {
 		return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("no points to append")}
 	}
+	// the path's last point stays on the stack
+	if n := maxFreeProgramTrackStack - 1; len(points) > n {
+		return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("too many points (%d > %d)", len(points), n)}
+	}
 	pattern := NewPathScanPattern(p.t0, points, p.coordsys)
 	iter := pattern.Iterator()
 	last := p.lastT

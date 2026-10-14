@@ -213,8 +213,8 @@ ___
 | Status | Meaning |
 |---|---|
 | 200 | points queued on the ACU program track stack |
-| 400 | no points, a point not after the last queued point, or a point outside the azimuth, elevation or speed limits |
-| 409 | no path running |
+| 400 | no points, more than 9999 points, a point not after the last queued point, or a point outside the azimuth, elevation or speed limits |
+| 409 | no path running, or the path's own upload failed |
 | 500 | the ACU failed the status read or the upload |
 | 503 | busy, the path's own upload still runs, or the points don't fit the free ACU stack positions; retry |
 

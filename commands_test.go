@@ -229,3 +229,22 @@ func TestAppendPathUploadFailed(t *testing.T) {
 		t.Errorf("points reached the ACU: %d uploads", len(acu.uploads))
 	}
 }
+
+// The running path's last point stays on the stack, so more points than the
+// rest of the stack never fit: a retry can't help.
+func TestAppendPathTooMany(t *testing.T) {
+	acu, tel := newFakeACU(t, maxFreeProgramTrackStack-1)
+	path := &runningPath{id: 42, t0: time.Now().Add(20 * time.Second), coordsys: "Horizon", lastT: 10}
+
+	points := make([][5]float64, maxFreeProgramTrackStack)
+	for i := range points {
+		points[i] = [5]float64{11 + float64(i), 120, 45, 0, 0}
+	}
+	res := appendPath(tel, path, points)
+	if res.status != http.StatusBadRequest || res.err == nil {
+		t.Errorf("got status %d, err %v; want %d", res.status, res.err, http.StatusBadRequest)
+	}
+	if len(acu.uploads) != 0 {
+		t.Errorf("points reached the ACU: %d uploads", len(acu.uploads))
+	}
+}
