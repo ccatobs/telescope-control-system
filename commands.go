@@ -68,6 +68,9 @@ func checkProgramTrackStartTime(startTime float64) error {
 // activeUploads counts the scan pattern uploads still running in the background.
 var activeUploads atomic.Int32
 
+// uploadFailed is set when the upload of the running scan pattern failed.
+var uploadFailed atomic.Bool
+
 type IsDoneFunc func(*Telescope) (bool, error)
 
 type Command interface {
@@ -187,9 +190,13 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 	time.Sleep(3 * time.Millisecond) // wait for ProgramTrackClear to take effect
 
 	uploadErrChan := make(chan error)
+	uploadFailed.Store(false)
 	activeUploads.Add(1)
 	go func() {
 		err := tel.UploadScanPattern(ctx, pattern)
+		if err != nil {
+			uploadFailed.Store(true)
+		}
 		activeUploads.Add(-1)
 		uploadErrChan <- err
 	}()
@@ -333,6 +340,10 @@ type appendResult struct {
 func appendPath(tel *Telescope, p *runningPath, points [][5]float64) appendResult {
 	if p == nil {
 		return appendResult{0, http.StatusConflict, fmt.Errorf("no path running")}
+	}
+	// the path ends at the next status check; the stack lacks some of its points
+	if uploadFailed.Load() {
+		return appendResult{p.id, http.StatusConflict, fmt.Errorf("path upload failed")}
 	}
 	if len(points) == 0 {
 		return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("no points to append")}

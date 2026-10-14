@@ -193,3 +193,39 @@ func TestAppendPathUploadInProgress(t *testing.T) {
 		t.Errorf("got status %d, err %v; want %d", res.status, res.err, http.StatusServiceUnavailable)
 	}
 }
+
+// After the path's own upload failed, the stack holds a gap or no points of
+// the path, so an append must not go through.
+func TestAppendPathUploadFailed(t *testing.T) {
+	acu, tel := newFakeACU(t, 10000)
+	t.Cleanup(func() { uploadFailed.Store(false) })
+
+	// 101 points pass Check, which reads the first 100; point 100 breaks the azimuth limit
+	points := make([][5]float64, 101)
+	for i := range points {
+		points[i] = [5]float64{float64(i), 120, 45, 0, 0}
+	}
+	points[100][1] = azimuthMax + 1
+	cmd := pathCmd{Coordsys: "Horizon", Points: points, StartTime: Time2Unixtime(time.Now().Add(20 * time.Second))}
+	if err := cmd.Check(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cmd.Start(context.Background(), tel); err != nil {
+		t.Fatal(err)
+	}
+	for deadline := time.Now().Add(time.Second); activeUploads.Load() > 0; {
+		if time.Now().After(deadline) {
+			t.Fatal("path upload did not end")
+		}
+		time.Sleep(time.Millisecond)
+	}
+
+	path := &runningPath{id: 42, t0: jsontime(cmd.StartTime), coordsys: "Horizon", lastT: 100}
+	res := appendPath(tel, path, [][5]float64{{101, 120, 45, 0, 0}})
+	if res.status != http.StatusConflict || res.err == nil {
+		t.Errorf("got status %d, err %v; want %d", res.status, res.err, http.StatusConflict)
+	}
+	if len(acu.uploads) != 0 {
+		t.Errorf("points reached the ACU: %d uploads", len(acu.uploads))
+	}
+}
