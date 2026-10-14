@@ -164,6 +164,35 @@ type appendReq struct {
 	result chan appendResult
 }
 
+// waitForCmd waits for the started command id to finish. It checks isDone at
+// each status update, stops the antenna on abort, and answers appends to path
+// (nil unless a path runs).
+func waitForCmd(id uint64, tel *Telescope, isDone IsDoneFunc, cancel context.CancelFunc, path *runningPath, abort <-chan chan bool, appends <-chan appendReq) {
+	var err error
+	for done := false; !done; {
+		select {
+		case <-time.After(statusUpdateDuration):
+			err = tel.UpdateStatus()
+			if err != nil {
+				break // select statement
+			}
+			done, err = isDone(tel)
+		case c := <-abort:
+			slog.Info("aborting command", "cmd", id)
+			c <- true
+			done = true
+			cancel()
+			err = tel.Stop()
+		case r := <-appends:
+			r.result <- appendPath(tel, path, r.points)
+		}
+		if err != nil {
+			logCmdError(id, err)
+			break
+		}
+	}
+}
+
 // runningCmd describes the currently running command, as reported by /status.
 type runningCmd struct {
 	ID        uint64  `json:"id"`
@@ -359,29 +388,7 @@ func main() {
 				continue
 			}
 
-			// wait for command to finish
-			for done := false; !done; {
-				select {
-				case <-time.After(statusUpdateDuration):
-					err = tel.UpdateStatus()
-					if err != nil {
-						break // select statement
-					}
-					done, err = isDone(tel)
-				case c := <-abort:
-					slog.Info("aborting command", "cmd", qc.id)
-					c <- true
-					done = true
-					cancel()
-					err = tel.Stop()
-				case r := <-appends:
-					r.result <- appendPath(tel, path, r.points)
-				}
-				if err != nil {
-					logCmdError(qc.id, err)
-					break
-				}
-			}
+			waitForCmd(qc.id, tel, isDone, cancel, path, abort, appends)
 
 			running.Store(nil)
 			slog.Info("command done", "cmd", qc.id)
