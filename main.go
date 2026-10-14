@@ -168,10 +168,14 @@ type appendReq struct {
 // each status update, stops the antenna on abort, and answers appends to path
 // (nil unless a path runs).
 func waitForCmd(id uint64, tel *Telescope, isDone IsDoneFunc, cancel context.CancelFunc, path *runningPath, abort <-chan chan bool, appends <-chan appendReq) {
+	// a ticker, so that appends don't postpone the status update
+	tick := time.NewTicker(statusUpdateDuration)
+	defer tick.Stop()
+
 	var err error
 	for done := false; !done; {
 		select {
-		case <-time.After(statusUpdateDuration):
+		case <-tick.C:
 			err = tel.UpdateStatus()
 			if err != nil {
 				break // select statement

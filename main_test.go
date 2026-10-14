@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDecodeCmdBody(t *testing.T) {
@@ -106,5 +107,38 @@ func TestStatusParamsPath(t *testing.T) {
 	want := `{"status":"ok","command":{"id":8,"endpoint":"/path","params":{"coordsys":"ICRS","num_points":2,"start_time":1615586629},"started_at":1.5}}` + "\n"
 	if got := w.Body.String(); got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// Appends faster than the 1 Hz status update must not delay isDone.
+func TestWaitForCmdWhileAppending(t *testing.T) {
+	for name, isDone := range map[string]IsDoneFunc{
+		"finished path": func(*Telescope) (bool, error) { return true, nil },
+		"failed path":   func(*Telescope) (bool, error) { return true, fmt.Errorf("upload failed") },
+	} {
+		_, tel := newFakeACU(t, 0) // a full stack: each append gets 503
+		path := &runningPath{id: 42, t0: time.Now().Add(20 * time.Second), coordsys: "Horizon", lastT: 10}
+		appends := make(chan appendReq)
+		finished := make(chan struct{})
+		go func() {
+			waitForCmd(42, tel, isDone, func() {}, path, nil, appends)
+			close(finished)
+		}()
+
+		// the client retries the append at 10 Hz
+		deadline := time.After(3 * time.Second)
+	retries:
+		for {
+			r := appendReq{[][5]float64{{11, 120, 45, 0, 0}}, make(chan appendResult)}
+			select {
+			case appends <- r:
+				<-r.result
+			case <-finished:
+				break retries
+			case <-deadline:
+				t.Fatalf("%s: no status update within 3 s of appends at 10 Hz", name)
+			}
+			time.Sleep(100 * time.Millisecond)
+		}
 	}
 }
