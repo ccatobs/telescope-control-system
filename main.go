@@ -158,6 +158,45 @@ type queuedCmd struct {
 	cmd      Command
 }
 
+// appendReq asks the main loop to append points to the running path.
+type appendReq struct {
+	points [][5]float64
+	result chan appendResult
+}
+
+// waitForCmd waits for the started command id to finish. It checks isDone at
+// each status update, stops the antenna on abort, and answers appends to path
+// (nil unless a path runs).
+func waitForCmd(id uint64, tel *Telescope, isDone IsDoneFunc, cancel context.CancelFunc, path *runningPath, abort <-chan chan bool, appends <-chan appendReq) {
+	// a ticker, so that appends don't postpone the status update
+	tick := time.NewTicker(statusUpdateDuration)
+	defer tick.Stop()
+
+	var err error
+	for done := false; !done; {
+		select {
+		case <-tick.C:
+			err = tel.UpdateStatus()
+			if err != nil {
+				break // select statement
+			}
+			done, err = isDone(tel)
+		case c := <-abort:
+			slog.Info("aborting command", "cmd", id)
+			c <- true
+			done = true
+			cancel()
+			err = tel.Stop()
+		case r := <-appends:
+			r.result <- appendPath(tel, path, r.points)
+		}
+		if err != nil {
+			logCmdError(id, err)
+			break
+		}
+	}
+}
+
 // runningCmd describes the currently running command, as reported by /status.
 type runningCmd struct {
 	ID        uint64  `json:"id"`
@@ -293,6 +332,9 @@ func main() {
 	// abort signal
 	abort := make(chan chan bool)
 
+	// requests to append points to the running path
+	appends := make(chan appendReq)
+
 	// currently running command, or nil
 	var running atomic.Pointer[runningCmd]
 
@@ -314,6 +356,8 @@ func main() {
 				case c := <-abort:
 					slog.Info("ignoring abort: no command running")
 					c <- false
+				case r := <-appends:
+					r.result <- appendPath(tel, nil, r.points)
 				}
 			}
 
@@ -333,6 +377,12 @@ func main() {
 				Tags:      qc.tags,
 				StartedAt: Time2Unixtime(time.Now()),
 			})
+			// a running path takes appended points; a relative start_time
+			// resolves here microseconds before Start resolves it again
+			var path *runningPath
+			if x, ok := cmd.(pathCmd); ok {
+				path = &runningPath{id: qc.id, t0: jsontime(x.StartTime), coordsys: x.Coordsys, lastT: x.Points[len(x.Points)-1][0]}
+			}
 			ctx, cancel := context.WithCancel(context.Background())
 			isDone, err := cmd.Start(ctx, tel)
 			if err != nil {
@@ -342,27 +392,7 @@ func main() {
 				continue
 			}
 
-			// wait for command to finish
-			for done := false; !done; {
-				select {
-				case <-time.After(statusUpdateDuration):
-					err = tel.UpdateStatus()
-					if err != nil {
-						break // select statement
-					}
-					done, err = isDone(tel)
-				case c := <-abort:
-					slog.Info("aborting command", "cmd", qc.id)
-					c <- true
-					done = true
-					cancel()
-					err = tel.Stop()
-				}
-				if err != nil {
-					logCmdError(qc.id, err)
-					break
-				}
-			}
+			waitForCmd(qc.id, tel, isDone, cancel, path, abort, appends)
 
 			running.Store(nil)
 			slog.Info("command done", "cmd", qc.id)
@@ -417,6 +447,32 @@ func main() {
 		}
 
 		jsonResponse(w, id, err, statusCode)
+	})
+
+	mux.HandleFunc("/path/append", func(w http.ResponseWriter, req *http.Request) {
+		if req.Method != "POST" {
+			jsonResponse(w, 0, fmt.Errorf("method not POST"), http.StatusMethodNotAllowed)
+			return
+		}
+		var x struct {
+			Points [][5]float64 `json:"points"`
+		}
+		tags, err := decodeCmdBody(req.Body, &x)
+		if err != nil {
+			jsonResponse(w, 0, err, http.StatusBadRequest)
+			return
+		}
+		r := appendReq{x.Points, make(chan appendResult)}
+		select {
+		case appends <- r:
+		case <-time.After(commandBusyTimeout):
+			jsonResponse(w, 0, fmt.Errorf("busy"), http.StatusServiceUnavailable)
+			return
+		}
+		res := <-r.result
+		slog.Info("path append", "cmd", res.id, "points", len(x.Points), "tags", tags, "status", res.status)
+		logCmdError(res.id, res.err)
+		jsonResponse(w, res.id, res.err, res.status)
 	})
 
 	mux.HandleFunc("/acu/status", func(w http.ResponseWriter, req *http.Request) {

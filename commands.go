@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -62,6 +64,12 @@ func checkProgramTrackStartTime(startTime float64) error {
 	}
 	return nil
 }
+
+// activeUploads counts the scan pattern uploads still running in the background.
+var activeUploads atomic.Int32
+
+// uploadFailed is set when the upload of the running scan pattern failed.
+var uploadFailed atomic.Bool
 
 type IsDoneFunc func(*Telescope) (bool, error)
 
@@ -182,8 +190,15 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 	time.Sleep(3 * time.Millisecond) // wait for ProgramTrackClear to take effect
 
 	uploadErrChan := make(chan error)
+	uploadFailed.Store(false)
+	activeUploads.Add(1)
 	go func() {
-		uploadErrChan <- tel.UploadScanPattern(ctx, pattern)
+		err := tel.UploadScanPattern(ctx, pattern)
+		if err != nil {
+			uploadFailed.Store(true)
+		}
+		activeUploads.Add(-1)
+		uploadErrChan <- err
 	}()
 
 	isDone := func(tel *Telescope) (bool, error) {
@@ -303,4 +318,81 @@ func (cmd pathCmd) Check() error {
 func (cmd pathCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
 	pattern := NewPathScanPattern(jsontime(cmd.StartTime), cmd.Points, cmd.Coordsys)
 	return startPattern(ctx, tel, pattern)
+}
+
+// runningPath is the state of a running /path command that /path/append extends.
+type runningPath struct {
+	id       uint64
+	t0       time.Time
+	coordsys string
+	lastT    float64 // time of the last queued point [seconds after t0]
+}
+
+// appendResult is the answer to a /path/append request.
+type appendResult struct {
+	id     uint64 // ID of the running path, or 0 if none runs
+	status int    // HTTP status code
+	err    error
+}
+
+// appendPath appends points to the program track of the running path p, or
+// rejects them. p is nil when no path runs.
+func appendPath(tel *Telescope, p *runningPath, points [][5]float64) appendResult {
+	if p == nil {
+		return appendResult{0, http.StatusConflict, fmt.Errorf("no path running")}
+	}
+	if len(points) == 0 {
+		return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("no points to append")}
+	}
+	// the path's last point stays on the stack
+	if n := maxFreeProgramTrackStack - 1; len(points) > n {
+		return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("too many points (%d > %d)", len(points), n)}
+	}
+	pattern := NewPathScanPattern(p.t0, points, p.coordsys)
+	iter := pattern.Iterator()
+	last := p.lastT
+	for i, x := range points {
+		// ACU ICD v2.0, section 8.9.3:
+		// "The minimum time interval between two samples is 0.05 s."
+		if x[0]-last < 0.05 {
+			return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("point %d: time %g is not at least 50 ms after the last queued point (%g)", i, x[0], last)}
+		}
+		last = x[0]
+
+		var pt ScanPatternSample
+		err := pattern.Next(iter, &pt)
+		if err == nil {
+			err = checkAzEl(pt.Az, pt.El, pt.AzVel, pt.ElVel)
+		}
+		if err != nil {
+			return appendResult{p.id, http.StatusBadRequest, fmt.Errorf("point %d: %w", i, err)}
+		}
+	}
+	// appended points must follow the path's own points on the stack
+	if activeUploads.Load() > 0 {
+		return appendResult{p.id, http.StatusServiceUnavailable, fmt.Errorf("path upload in progress")}
+	}
+	// Keep this check after the activeUploads check: the upload goroutine sets
+	// uploadFailed before it drops activeUploads, so with no upload running the
+	// flag is final. Read earlier, it misses an upload that fails meanwhile.
+	// After a failure, the path ends at the next status check, and the stack
+	// lacks some of its points.
+	if uploadFailed.Load() {
+		return appendResult{p.id, http.StatusConflict, fmt.Errorf("path upload failed")}
+	}
+
+	// UploadScanPattern waits between batches when the points don't fit the
+	// stack, so only append what fits in one batch.
+	var status datasets.StatusGeneral8100
+	if err := tel.acu.StatusGeneral8100Get(&status); err != nil {
+		return appendResult{p.id, http.StatusInternalServerError, err}
+	}
+	if free := int(status.QtyOfFreeProgramTrackStackPositions); len(points) > free {
+		return appendResult{p.id, http.StatusServiceUnavailable, fmt.Errorf("%d points don't fit the %d free ACU program track stack positions", len(points), free)}
+	}
+	if err := tel.UploadScanPattern(context.Background(), pattern); err != nil {
+		return appendResult{p.id, http.StatusInternalServerError, err}
+	}
+	p.lastT = last
+	return appendResult{p.id, http.StatusOK, nil}
 }

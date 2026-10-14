@@ -192,6 +192,32 @@ curl 'localhost:5600/path' -d@- <<___
 ___
 ```
 
+### `/path/append`
+
+Append points to the running `/path`, without stopping the antenna.
+The points take the form and `coordsys` of the running path, with times in
+seconds after its `start_time`. Each point must come at least 50 ms after the
+last queued point. The response carries the `id` of the running path.
+
+```sh
+curl 'localhost:5600/path/append' -d@- <<___
+{
+    "points": [
+        [240, 115, -45, 0.05, -0.05],
+        [300, 118, -48, 0.05, -0.05]
+    ]
+}
+___
+```
+
+| Status | Meaning |
+|---|---|
+| 200 | points queued on the ACU program track stack |
+| 400 | no points, more than 9999 points, a point not after the last queued point, or a point outside the azimuth, elevation or speed limits |
+| 409 | no path running, or the path's own upload failed |
+| 500 | the ACU failed the status read or the upload |
+| 503 | busy, the path's own upload still runs, or the points don't fit the free ACU stack positions; retry |
+
 ### `/track`
 
 Track a point on the sky.
