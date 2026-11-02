@@ -93,6 +93,17 @@ func (t Telescope) Stop() error {
 	return t.acu.ModeSet("Stop")
 }
 
+// SetMode switches both axes to mode, stopping them first.
+func (t Telescope) SetMode(mode string) error {
+	// ICD Section 9.1: "Before commanding or setting up a new mode,
+	// it is best practice to set the antenna to Stop mode first."
+	err := t.acu.ModeSet("Stop")
+	if err != nil {
+		return err
+	}
+	return t.acu.ModeSet(mode)
+}
+
 func (t Telescope) MoveTo(az, el float64) error {
 	// ICD Section 9.1: "Before commanding or setting up a new mode,
 	// it is best practice to set the antenna to Stop mode first."

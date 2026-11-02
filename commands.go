@@ -16,6 +16,9 @@ const (
 	speedTol                 = 1e-4
 	maxFreeProgramTrackStack = 10000
 
+	// max time for stow, unstow, & survival mode to complete
+	modeChangeTimeout = 5 * time.Minute
+
 	azimuthMin      = -180.0
 	azimuthMax      = 360.0
 	azimuthSpeedMax = 3.0  // [deg/sec]
@@ -148,6 +151,77 @@ func (cmd setSPEMCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, er
 /*
  */
 
+// startMode switches the telescope to mode, and is done once
+// atTarget is true and both axes have stopped moving.
+// The axes must remain in one of the allowed modes
+// (azimuth and elevation share the same mode codes).
+func startMode(tel *Telescope, mode string, allowed []uint8, atTarget func(*datasets.StatusGeneral8100) bool) (IsDoneFunc, error) {
+	t0 := time.Now()
+	err := tel.SetMode(mode)
+	isDone := func(tel *Telescope) (bool, error) {
+		rec := tel.Status()
+		if !slices.Contains(allowed, rec.AzimuthMode) {
+			return true, fmt.Errorf("azimuth not in %s mode: %d", mode, rec.AzimuthMode)
+		}
+		if !slices.Contains(allowed, rec.ElevationMode) {
+			return true, fmt.Errorf("elevation not in %s mode: %d", mode, rec.ElevationMode)
+		}
+		done := atTarget(rec) &&
+			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
+			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
+		if !done && time.Since(t0) > modeChangeTimeout {
+			return false, fmt.Errorf("%s timed out", mode)
+		}
+		return done, nil
+	}
+	return isDone, err
+}
+
+// onCommandedPosition reports whether both axes have reached their commanded positions.
+func onCommandedPosition(rec *datasets.StatusGeneral8100) bool {
+	return (math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthCommandedPosition) < positionTol) &&
+		(math.Abs(rec.ElevationCurrentPosition-rec.ElevationCommandedPosition) < positionTol)
+}
+
+// stowCmd moves to the stow position and inserts the stow pins.
+type stowCmd struct{}
+
+func (cmd stowCmd) Check() error { return nil }
+
+func (cmd stowCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	return startMode(tel, "Stow", []uint8{datasets.AzimuthModeStow}, func(rec *datasets.StatusGeneral8100) bool {
+		return rec.ElevationAxisInStowPosition &&
+			(rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusAllInserted ||
+				rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusNotAvailable)
+	})
+}
+
+// unstowCmd retracts the stow pins.
+type unstowCmd struct{}
+
+func (cmd unstowCmd) Check() error { return nil }
+
+func (cmd unstowCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	// the ACU may return to Stop mode once the pins are out
+	allowed := []uint8{datasets.AzimuthModeUnStow, datasets.AzimuthModeStop}
+	return startMode(tel, "UnStow", allowed, func(rec *datasets.StatusGeneral8100) bool {
+		return rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusAllRetracted ||
+			rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusNotAvailable
+	})
+}
+
+// survivalModeCmd moves to the survival position.
+type survivalModeCmd struct{}
+
+func (cmd survivalModeCmd) Check() error { return nil }
+
+func (cmd survivalModeCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	return startMode(tel, "SurvivalMode", []uint8{datasets.AzimuthModeSurvivalMode}, onCommandedPosition)
+}
+
+/*
+ */
+
 type moveToCmd struct {
 	Azimuth   float64 `json:"azimuth"`
 	Elevation float64 `json:"elevation"`
@@ -180,8 +254,7 @@ func (cmd moveToCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 		if rec.ElevationMode != datasets.ElevationModePreset {
 			return true, fmt.Errorf("elevation not in preset mode: %d", rec.ElevationMode)
 		}
-		done := (math.Abs(rec.AzimuthCurrentPosition-rec.AzimuthCommandedPosition) < positionTol) &&
-			(math.Abs(rec.ElevationCurrentPosition-rec.ElevationCommandedPosition) < positionTol) &&
+		done := onCommandedPosition(rec) &&
 			(math.Abs(rec.AzimuthCurrentVelocity) < speedTol) &&
 			(math.Abs(rec.ElevationCurrentVelocity) < speedTol)
 		if !done && time.Since(t0) > timeout {

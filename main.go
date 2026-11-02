@@ -593,6 +593,15 @@ func main() {
 				var x azScanCmd
 				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
+			case "/stow":
+				err = checkNoBody(req.Body)
+				cmd = stowCmd{}
+			case "/survival-mode":
+				err = checkNoBody(req.Body)
+				cmd = survivalModeCmd{}
+			case "/unstow":
+				err = checkNoBody(req.Body)
+				cmd = unstowCmd{}
 			case "/move-to":
 				var x moveToCmd
 				tags, err = decodeCmdBody(req.Body, &x)
@@ -619,7 +628,7 @@ func main() {
 			// XXX:TODO: hacky
 			endpoint := req.URL.Path
 			switch endpoint {
-			case "/acu/position-broadcast", "/acu/spem", "/azimuth-scan", "/move-to", "/path", "/track":
+			case "/acu/position-broadcast", "/acu/spem", "/azimuth-scan", "/move-to", "/path", "/stow", "/survival-mode", "/track", "/unstow":
 				err = fmt.Errorf("method not POST")
 				statusCode = http.StatusMethodNotAllowed
 			default:
@@ -634,6 +643,16 @@ func main() {
 		if err != nil {
 			statusCode = http.StatusBadRequest
 			goto respond
+		}
+
+		// stow & survival mode take priority over the running command
+		switch cmd.(type) {
+		case stowCmd, survivalModeCmd:
+			c := make(chan bool)
+			abort <- c
+			if <-c {
+				slog.Info("aborted running command", "cmd", id)
+			}
 		}
 
 		// queue command

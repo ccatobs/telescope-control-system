@@ -192,7 +192,7 @@ func (acu *ACU) ModeSet(mode string) error {
 	switch mode {
 	case "Stop":
 		return acu.command2("DataSets.CmdModeTransfer", "Stop")
-	case "Preset", "ProgramTrack", "Rate", "SurvivalMode", "StarTrack", "MoonTrack", "SectorScan":
+	case "Preset", "ProgramTrack", "Rate", "SurvivalMode", "StarTrack", "MoonTrack", "SectorScan", "Stow", "UnStow":
 		return acu.command3("DataSets.CmdModeTransfer", "SetAzElMode", mode)
 	}
 	return fmt.Errorf("ModeSet: bad mode: %s", mode)
