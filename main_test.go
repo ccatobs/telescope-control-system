@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"maps"
+	"math"
 	"net/http/httptest"
 	"strings"
 	"testing"
@@ -106,5 +107,29 @@ func TestStatusParamsPath(t *testing.T) {
 	want := `{"status":"ok","command":{"id":8,"endpoint":"/path","params":{"coordsys":"ICRS","num_points":2,"start_time":1615586629},"started_at":1.5}}` + "\n"
 	if got := w.Body.String(); got != want {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func TestSetSPEMCmdCheck(t *testing.T) {
+	for _, body := range []string{
+		`{}`,                // no parameters
+		`{"XX": 1}`,         // unknown parameter
+		`{"IA": "1"}`,       // not a number
+		`{"IA": 1, "x": 2}`, // unknown parameter
+	} {
+		var cmd setSPEMCmd
+		_, err := decodeCmdBody(strings.NewReader(body), &cmd)
+		if err == nil {
+			err = cmd.Check()
+		}
+		if err == nil {
+			t.Errorf("%q: expected error", body)
+		}
+	}
+	if err := (setSPEMCmd{"IA": math.Inf(1)}).Check(); err == nil {
+		t.Error("Inf: expected error")
+	}
+	if err := (setSPEMCmd{"IA": 1, "LEVE": -2}).Check(); err != nil {
+		t.Error(err)
 	}
 }

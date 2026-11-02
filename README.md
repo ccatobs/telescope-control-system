@@ -113,6 +113,28 @@ Reboot the ACU.
 curl -X POST 'http://localhost:5600/acu/reboot'
 ```
 
+### `/acu/spem`
+
+Set parameters of the ACU's systematic pointing error model (SPEM).
+Any subset of the parameters may be given; the rest are left unchanged.
+Units are mdeg, except `LEL_velocity` which is deg/s.
+
+Parameters: `IA`, `IE`, `TFC`, `TF`, `TFS`, `TFEC`, `TFE`, `TFES`, `AN`, `AW`,
+`AN2`, `AW2`, `CA`, `NPAE`, `AES`, `AEC`, `AES2`, `AEC2`, `EES`, `EEC`, `EES2`,
+`EEC2`, `NRX`, `NRY`, `LELA`, `LEVA`, `LELE`, `LEVE`, `LEL_velocity`.
+
+```sh
+curl 'localhost:5600/acu/spem' -d@- <<___
+{
+    "IA": 1.5,
+    "IE": -0.3,
+    "CA": 0.02
+}
+___
+```
+
+The current values can be read with `/acu/datasets/CmdSPEMParameter`.
+
 ### `/acu/status`
 
 Get the raw status of the ACU.

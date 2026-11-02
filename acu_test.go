@@ -7,6 +7,9 @@ import (
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"reflect"
+	"slices"
+	"strings"
 	"testing"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -48,5 +51,48 @@ func TestDatasetGet(t *testing.T) {
 	}
 	if got := *rec.(*datasets.Shutter); got != sent {
 		t.Errorf("got %+v, want %+v", got, sent)
+	}
+}
+
+func TestSPEMParameterSet(t *testing.T) {
+	var got []string
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		q := req.URL.Query()
+		if id := q.Get("identifier"); id != "DataSets.CmdSPEMParameter" {
+			t.Errorf("identifier = %q", id)
+		}
+		got = append(got, q.Get("command")+"="+q.Get("parameter"))
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	tel := NewTelescope(NewACU(host, port, port, port))
+	cmd := setSPEMCmd{"NPAE": 1e6, "IA": -0.25, "LEL_velocity": 1e-7}
+	if err := cmd.Check(); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := cmd.Start(t.Context(), tel); err != nil {
+		t.Fatal(err)
+	}
+	want := []string{"Set Spem_IA=-0.25", "Set Spem_NPAE=1000000", "Set LEL_velocity=0.0000001"}
+	if !slices.Equal(got, want) {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+// spemParams should match the fields of the CmdSPEMParameter dataset.
+func TestSPEMParamsMatchDataset(t *testing.T) {
+	var names []string
+	typ := reflect.TypeFor[datasets.CmdSPEMParameter]()
+	for i := range typ.NumField() {
+		tag := typ.Field(i).Tag.Get("json")
+		if name, ok := strings.CutPrefix(tag, "Parameter "); ok {
+			names = append(names, name)
+		} else if tag == "LEL velocity" {
+			names = append(names, "LEL_velocity")
+		}
+	}
+	if !slices.Equal(names, spemParams) {
+		t.Errorf("dataset has %q, spemParams has %q", names, spemParams)
 	}
 }

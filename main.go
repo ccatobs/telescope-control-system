@@ -585,6 +585,10 @@ func main() {
 				var x enablePositionBroadcastCmd
 				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
+			case "/acu/spem":
+				var x setSPEMCmd
+				tags, err = decodeCmdBody(req.Body, &x)
+				cmd = x
 			case "/azimuth-scan":
 				var x azScanCmd
 				tags, err = decodeCmdBody(req.Body, &x)
@@ -615,7 +619,7 @@ func main() {
 			// XXX:TODO: hacky
 			endpoint := req.URL.Path
 			switch endpoint {
-			case "/azimuth-scan", "/enable-udp-stream", "/move-to", "/path", "/track":
+			case "/acu/position-broadcast", "/acu/spem", "/azimuth-scan", "/move-to", "/path", "/track":
 				err = fmt.Errorf("method not POST")
 				statusCode = http.StatusMethodNotAllowed
 			default:

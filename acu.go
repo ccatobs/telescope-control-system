@@ -272,6 +272,22 @@ func (acu *ACU) ProgramTrackGet(points *[]datasets.TimePositionTransfer) error {
 	return err
 }
 
+// formatFloat formats x without an exponent, since a '+' in a URL query decodes as a space.
+func formatFloat(x float64) string {
+	return strconv.FormatFloat(x, 'f', -1, 64)
+}
+
+// SPEMParameterSet sets a parameter of the systematic pointing error model,
+// e.g. name="IA". Units are [mdeg], except "LEL_velocity" which is [deg/s].
+// ACU Extension ICD v1.4, section 2.5.2.
+func (acu *ACU) SPEMParameterSet(name string, value float64) error {
+	cmd := "Set+Spem_" + name
+	if name == "LEL_velocity" {
+		cmd = "Set+LEL_velocity"
+	}
+	return acu.command3("DataSets.CmdSPEMParameter", cmd, formatFloat(value))
+}
+
 // ShutterClose closes the shutter.
 func (acu *ACU) ShutterClose() error {
 	return acu.command2("SetShutter", "Close")

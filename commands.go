@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
+	"slices"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -97,6 +98,51 @@ func (cmd enablePositionBroadcastCmd) Check() error {
 func (cmd enablePositionBroadcastCmd) Start(ctx context.Context, t *Telescope) (IsDoneFunc, error) {
 	err := t.EnablePositionBroadcast(cmd.Host, cmd.Port)
 	return func(*Telescope) (bool, error) { return true, nil }, err
+}
+
+/*
+ */
+
+// spemParams are the SPEM parameter names, in ACU dataset order.
+// ACU Extension ICD v1.4, section 2.5.
+var spemParams = []string{
+	"IA", "IE", "TFC", "TF", "TFS", "TFEC", "TFE", "TFES",
+	"AN", "AW", "AN2", "AW2", "CA", "NPAE",
+	"AES", "AEC", "AES2", "AEC2", "EES", "EEC", "EES2", "EEC2",
+	"NRX", "NRY", "LELA", "LEVA", "LELE", "LEVE",
+	"LEL_velocity",
+}
+
+// setSPEMCmd sets a subset of the SPEM parameters.
+type setSPEMCmd map[string]float64
+
+func (cmd setSPEMCmd) Check() error {
+	if len(cmd) == 0 {
+		return fmt.Errorf("no SPEM parameters")
+	}
+	for name, value := range cmd {
+		if !slices.Contains(spemParams, name) {
+			return fmt.Errorf("unknown SPEM parameter: %s", name)
+		}
+		if math.IsNaN(value) || math.IsInf(value, 0) {
+			return fmt.Errorf("SPEM parameter %s is not finite", name)
+		}
+	}
+	return nil
+}
+
+func (cmd setSPEMCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	for _, name := range spemParams {
+		value, ok := cmd[name]
+		if !ok {
+			continue
+		}
+		err := tel.acu.SPEMParameterSet(name, value)
+		if err != nil {
+			return nil, fmt.Errorf("setting SPEM parameter %s: %w", name, err)
+		}
+	}
+	return func(*Telescope) (bool, error) { return true, nil }, nil
 }
 
 /*
