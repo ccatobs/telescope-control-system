@@ -77,8 +77,9 @@ func TestTrackSpacing(t *testing.T) {
 // The holography scan should reproduce the pattern in
 // housekeeping/devutils/control/src/data/scan_50_minimal.dat.
 func TestHolographyScanPattern(t *testing.T) {
-	// t, x, y, vx, vy at the start & end of the first & last lines
+	// t, x, y, vx, vy at the start & end of the pattern & of the first & last lines
 	want := [][5]float64{
+		{0, 0, 0, 0, 0},
 		{3, -1, 0, 0.285714, 0},
 		{10, 1, 0, 0.285714, 0},
 		{13, 0, -1, 0, 0.285714},
@@ -87,10 +88,11 @@ func TestHolographyScanPattern(t *testing.T) {
 		{30, 0.998027, 0.062791, 0.285150, 0.017940},
 		{493, 0.998027, -0.062791, -0.285150, 0.017940},
 		{500, -0.998027, 0.062791, -0.285150, 0.017940},
+		{503, 0, 0, 0, 0},
 	}
 	const az, el = 120, 45
 	t0 := time.Date(2026, 11, 3, 0, 0, 0, 0, time.UTC)
-	pattern := NewHolographyScanPattern(t0.Add(3*time.Second), 50, az, el, 1, 2.0/7, 3*time.Second)
+	pattern := NewHolographyScanPattern(t0, 50, az, el, 1, 2.0/7, 3*time.Second)
 	got := map[float64]ScanPatternSample{}
 	iter := pattern.Iterator()
 	n := 0
@@ -102,8 +104,8 @@ func TestHolographyScanPattern(t *testing.T) {
 		got[math.Round(p.T.Sub(t0).Seconds()*1e6)/1e6] = p
 		n++
 	}
-	if n != 50*5 {
-		t.Errorf("got %d points, want %d", n, 50*5)
+	if n != 50*5+2 {
+		t.Errorf("got %d points, want %d", n, 50*5+2)
 	}
 	for _, w := range want {
 		p, ok := got[w[0]]
@@ -117,7 +119,7 @@ func TestHolographyScanPattern(t *testing.T) {
 				break
 			}
 		}
-		// the last point of each line is a turnaround
+		// the start and the last point of each line are turnarounds
 		var f int8 = 1
 		if int(w[0])%10 == 0 {
 			f = 2

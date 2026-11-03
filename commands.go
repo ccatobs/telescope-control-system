@@ -394,7 +394,39 @@ func (cmd holographyScanCmd) Check() error {
 func (cmd holographyScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
 	t0 := jsontime(cmd.StartTime)
 	pattern := NewHolographyScanPattern(t0, cmd.NumLines, cmd.Azimuth, cmd.Elevation, cmd.Radius, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
-	return startPattern(ctx, tel, pattern)
+
+	// the pattern starts at rest at the center, so move there first
+	moveDone, err := moveToCmd{Azimuth: cmd.Azimuth, Elevation: cmd.Elevation}.Start(ctx, tel)
+	if err != nil {
+		return nil, err
+	}
+	var patternDone IsDoneFunc
+	isDone := func(tel *Telescope) (bool, error) {
+		if patternDone != nil {
+			return patternDone(tel)
+		}
+		done, err := moveDone(tel)
+		if err != nil {
+			return true, err
+		}
+		if !done {
+			return false, nil
+		}
+		// ACU Extension ICD v1.4, section 3:
+		// "mode activation should precede first track time by 5 s"
+		lead := time.Until(t0)
+		if lead < 5*time.Second {
+			return true, fmt.Errorf("reached scan center too late to start at %v", t0)
+		}
+		// wait at the center until shortly before the scan
+		if lead > 10*time.Second {
+			return false, nil
+		}
+		slog.Info("at scan center, starting scan")
+		patternDone, err = startPattern(ctx, tel, pattern)
+		return err != nil, err
+	}
+	return isDone, nil
 }
 
 type trackCmd struct {

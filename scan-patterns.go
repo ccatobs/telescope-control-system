@@ -121,9 +121,10 @@ func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, 
 // NewHolographyScanPattern scans num straight lines through (az,el), each from -radius
 // to +radius at constant speed. Lines come in perpendicular pairs, and each pair
 // is rotated 180/num degrees from the last. The ACU generates the turnarounds.
+// The pattern starts & ends at rest at (az,el), so the ACU can ease into & out of it.
 func NewHolographyScanPattern(start time.Time, num int, az, el, radius, speed float64, turnaround time.Duration) *RepeatingScanPattern {
 	const m = 5 // points per line
-	n := num * m
+	n := num*m + 2
 	azs := make([]float64, n)
 	els := make([]float64, n)
 	vazs := make([]float64, n)
@@ -131,13 +132,19 @@ func NewHolographyScanPattern(start time.Time, num int, az, el, radius, speed fl
 	fazs := make([]int8, n)
 	fels := make([]int8, n)
 	dts := make([]time.Duration, n)
+
+	// start at rest at the center, then turn onto the first line
+	azs[0], els[0] = az, el
+	fazs[0], fels[0] = 2, 2 // turnaround flag
+	dts[0] = turnaround
+
 	ds := 2 * radius / (m - 1)
 	dt := Seconds2Duration(ds / speed)
 	for k := 0; k < num; k++ {
 		theta := float64(k/2)*180/float64(num) + float64(k%2)*90
 		sin, cos := math.Sincos(theta * math.Pi / 180)
 		for i := 0; i < m; i++ {
-			j := k*m + i
+			j := 1 + k*m + i
 			s := -radius + float64(i)*ds
 			azs[j] = az + s*cos
 			els[j] = el + s*sin
@@ -147,11 +154,16 @@ func NewHolographyScanPattern(start time.Time, num int, az, el, radius, speed fl
 			fels[j] = 1
 			dts[j] = dt
 		}
-		j := k*m + m - 1
+		j := 1 + k*m + m - 1
 		dts[j] = turnaround
 		fazs[j] = 2 // turnaround flag
 		fels[j] = 2
 	}
+
+	// end at rest at the center
+	azs[n-1], els[n-1] = az, el
+	fazs[n-1], fels[n-1] = 1, 1
+
 	return &RepeatingScanPattern{
 		n:     1,
 		m:     n,

@@ -190,6 +190,10 @@ and each pair is rotated `180/num_lines` degrees from the last, e.g. for
 `num_lines=50` the lines are at 0°, 90°, 3.6°, 93.6°, ..., 86.4°, 176.4°
 (measured from the +azimuth direction). `num_lines` must be even.
 The ACU generates the turnarounds between lines, which take `turnaround_time` seconds.
+The telescope first moves to the center, then starts the scan there, at rest, at
+`start_time`; it turns onto the first line `turnaround_time` seconds later.
+`start_time` must leave enough time for the move, plus 5 seconds.
+At the end it turns back to the center and stops.
 Offsets are in raw azimuth & elevation, i.e. not scaled by cos(elevation).
 
 ```sh
