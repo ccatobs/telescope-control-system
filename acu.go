@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -28,6 +29,7 @@ type ACU struct {
 	MonitorAddr string
 	AdminAddr   string
 	client      *http.Client
+	commandMu   sync.Mutex // serializes commands
 	lastCommand time.Time
 }
 
@@ -95,7 +97,7 @@ func (acu *ACU) get(path string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	return acu.do(req)
+	return acu.doCommand(req)
 }
 
 func (acu *ACU) getMonitor(path string) ([]byte, error) {
@@ -113,8 +115,7 @@ func (acu *ACU) post(path, contentType string, body io.Reader) ([]byte, error) {
 		return nil, err
 	}
 	req.Header.Set("Content-Type", contentType)
-	acu.commandWait()
-	return acu.do(req)
+	return acu.doCommand(req)
 }
 
 func (acu *ACU) postAdminValues(path string, values url.Values) ([]byte, error) {
@@ -124,11 +125,16 @@ func (acu *ACU) postAdminValues(path string, values url.Values) ([]byte, error) 
 		return nil, err
 	}
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
-	acu.commandWait()
-	return acu.do(req)
+	return acu.doCommand(req)
 }
 
-func (acu *ACU) commandWait() {
+// doCommand sends a command request. Commands are sent one at a time,
+// since the ACU may drop overlapping connections, and are spaced
+// at least minDurationBetweenCommands apart.
+func (acu *ACU) doCommand(req *http.Request) ([]byte, error) {
+	acu.commandMu.Lock()
+	defer acu.commandMu.Unlock()
+
 	// don't send commands too quickly
 	dt := minDurationBetweenCommands - time.Since(acu.lastCommand)
 	if dt > 0 {
@@ -136,10 +142,10 @@ func (acu *ACU) commandWait() {
 		time.Sleep(dt)
 	}
 	acu.lastCommand = time.Now()
+	return acu.do(req)
 }
 
 func (acu *ACU) sendCommand(url string) error {
-	acu.commandWait()
 	_, err := acu.get(url)
 	return err
 }

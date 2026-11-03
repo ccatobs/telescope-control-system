@@ -10,7 +10,10 @@ import (
 	"reflect"
 	"slices"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
 )
@@ -94,5 +97,42 @@ func TestSPEMParamsMatchDataset(t *testing.T) {
 	}
 	if !slices.Equal(names, spemParams) {
 		t.Errorf("dataset has %q, spemParams has %q", names, spemParams)
+	}
+}
+
+// The ACU may drop overlapping command connections, so commands must be serialized.
+func TestCommandsSerialized(t *testing.T) {
+	var inflight, maxInflight atomic.Int32
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		n := inflight.Add(1)
+		defer inflight.Add(-1)
+		for {
+			m := maxInflight.Load()
+			if n <= m || maxInflight.CompareAndSwap(m, n) {
+				break
+			}
+		}
+		time.Sleep(20 * time.Millisecond)
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	acu := NewACU(host, port, port, port)
+	var wg sync.WaitGroup
+	for range 4 {
+		wg.Go(func() {
+			if err := acu.ModeSet("Stop"); err != nil {
+				t.Error(err)
+			}
+		})
+		wg.Go(func() {
+			if _, err := acu.post("/UploadPtStack", "text/plain", strings.NewReader("x")); err != nil {
+				t.Error(err)
+			}
+		})
+	}
+	wg.Wait()
+	if m := maxInflight.Load(); m != 1 {
+		t.Errorf("%d commands in flight at once", m)
 	}
 }
