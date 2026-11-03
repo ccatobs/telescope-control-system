@@ -300,10 +300,22 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 	}
 	time.Sleep(3 * time.Millisecond) // wait for ProgramTrackClear to take effect
 
-	uploadErrChan := make(chan error)
+	// buffered, so the upload goroutine can exit if nobody's listening
+	uploadErrChan := make(chan error, 1)
+	firstBatch := make(chan struct{})
 	go func() {
-		uploadErrChan <- tel.UploadScanPattern(ctx, pattern)
+		uploadErrChan <- tel.UploadScanPattern(ctx, pattern, firstBatch)
 	}()
+
+	// the ACU won't enter program track mode with an empty stack
+	select {
+	case <-firstBatch:
+	case err := <-uploadErrChan:
+		// nil means the whole pattern was uploaded in one batch
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	isDone := func(tel *Telescope) (bool, error) {
 		// check for upload errors

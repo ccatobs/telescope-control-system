@@ -1,6 +1,13 @@
 package main
 
 import (
+	"encoding/binary"
+	"net"
+	"net/http"
+	"net/http/httptest"
+	"slices"
+	"strings"
+	"sync"
 	"testing"
 	"time"
 
@@ -42,5 +49,57 @@ func TestCalibrateTimeNoStatus(t *testing.T) {
 	tel := NewTelescope(nil)
 	if err := tel.CalibrateTime(); err == nil {
 		t.Error("CalibrateTime with no ACU status: expected error")
+	}
+}
+
+// fakeProgramTrackACU returns an ACU whose requests are recorded in *log.
+// If uploadFails, uploads are rejected.
+func fakeProgramTrackACU(t *testing.T, log *[]string, uploadFails bool) *ACU {
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		q := req.URL.Query()
+		mu.Lock()
+		*log = append(*log, strings.TrimSpace(req.URL.Path+" "+q.Get("command")+" "+q.Get("parameter")))
+		mu.Unlock()
+		switch {
+		case req.URL.Path == "/UploadPtStack":
+			if uploadFails {
+				w.Write([]byte("Failed: Command failed!"))
+			}
+		case q.Get("identifier") == "DataSets.StatusGeneral8100":
+			binary.Write(w, binary.LittleEndian, &datasets.StatusGeneral8100{QtyOfFreeProgramTrackStackPositions: maxFreeProgramTrackStack})
+		case q.Get("identifier") == "DataSets.StatusCCatDetailed8100":
+			binary.Write(w, binary.LittleEndian, &datasets.StatusCCatDetailed8100{})
+		}
+	}))
+	t.Cleanup(srv.Close)
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	return NewACU(host, port, port, port)
+}
+
+// The ACU won't enter program track mode with an empty stack.
+func TestStartPatternUploadsFirst(t *testing.T) {
+	var log []string
+	tel := NewTelescope(fakeProgramTrackACU(t, &log, false))
+	pattern := NewAzimuthScanPattern(time.Now().Add(15*time.Second), 1, 45, [2]float64{100, 110}, 1, 5*time.Second)
+	if _, err := startPattern(t.Context(), tel, pattern); err != nil {
+		t.Fatal(err)
+	}
+	upload := slices.Index(log, "/UploadPtStack")
+	mode := slices.Index(log, "/Command SetAzElMode ProgramTrack")
+	if upload < 0 || mode < 0 || mode < upload {
+		t.Errorf("want upload before ProgramTrack mode, got %q", log)
+	}
+}
+
+func TestStartPatternUploadFails(t *testing.T) {
+	var log []string
+	tel := NewTelescope(fakeProgramTrackACU(t, &log, true))
+	pattern := NewAzimuthScanPattern(time.Now().Add(15*time.Second), 1, 45, [2]float64{100, 110}, 1, 5*time.Second)
+	if _, err := startPattern(t.Context(), tel, pattern); err == nil {
+		t.Error("expected upload error")
+	}
+	if slices.Contains(log, "/Command SetAzElMode ProgramTrack") {
+		t.Errorf("entered ProgramTrack mode after failed upload: %q", log)
 	}
 }

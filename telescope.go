@@ -122,7 +122,8 @@ func (t Telescope) MoveTo(az, el float64) error {
 }
 
 // UploadScanPattern uploads a program track in batches.
-func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) error {
+// firstBatch is closed once the first batch has been uploaded.
+func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern, firstBatch chan<- struct{}) error {
 	iter := pattern.Iterator()
 	total := 0
 	samples := make([]ScanPatternSample, maxFreeProgramTrackStack)
@@ -186,6 +187,9 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern) e
 		err = t.acu.ProgramTrackAdd(pts[:n])
 		if err != nil {
 			return err
+		}
+		if total == n {
+			close(firstBatch)
 		}
 
 		// send points to housekeeping
