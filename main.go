@@ -593,6 +593,10 @@ func main() {
 				var x azScanCmd
 				tags, err = decodeCmdBody(req.Body, &x)
 				cmd = x
+			case "/holography-scan":
+				var x holographyScanCmd
+				tags, err = decodeCmdBody(req.Body, &x)
+				cmd = x
 			case "/stow":
 				err = checkNoBody(req.Body)
 				cmd = stowCmd{}
@@ -628,7 +632,7 @@ func main() {
 			// XXX:TODO: hacky
 			endpoint := req.URL.Path
 			switch endpoint {
-			case "/acu/position-broadcast", "/acu/spem", "/azimuth-scan", "/move-to", "/path", "/stow", "/survival-mode", "/track", "/unstow":
+			case "/acu/position-broadcast", "/acu/spem", "/azimuth-scan", "/holography-scan", "/move-to", "/path", "/stow", "/survival-mode", "/track", "/unstow":
 				err = fmt.Errorf("method not POST")
 				statusCode = http.StatusMethodNotAllowed
 			default:

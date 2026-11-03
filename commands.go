@@ -351,6 +351,52 @@ func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 	return startPattern(ctx, tel, pattern)
 }
 
+type holographyScanCmd struct {
+	Azimuth        float64 `json:"azimuth"`
+	Elevation      float64 `json:"elevation"`
+	Radius         float64 `json:"radius"`
+	NumLines       int     `json:"num_lines"`
+	Speed          float64 `json:"speed"`
+	StartTime      float64 `json:"start_time"`
+	TurnaroundTime float64 `json:"turnaround_time"`
+}
+
+func (cmd holographyScanCmd) Check() error {
+	if err := checkProgramTrackStartTime(cmd.StartTime); err != nil {
+		return err
+	}
+	if cmd.NumLines <= 0 || cmd.NumLines%2 != 0 {
+		return fmt.Errorf("num_lines (%d) must be positive and even", cmd.NumLines)
+	}
+	if !(cmd.Radius > 0) {
+		return fmt.Errorf("radius (%g) must be positive", cmd.Radius)
+	}
+	if !(cmd.Speed > 0) {
+		return fmt.Errorf("speed (%g) must be positive", cmd.Speed)
+	}
+	// "The minimum time interval between two samples is 0.05 s."
+	if !(cmd.TurnaroundTime >= 0.05) {
+		return fmt.Errorf("turnaround_time (%g) must be at least 0.05 s", cmd.TurnaroundTime)
+	}
+	if 2*cmd.Radius/cmd.Speed < 4*0.05 {
+		return fmt.Errorf("lines too short for speed: points would be < 0.05 s apart")
+	}
+	// the extremes of the pattern
+	for _, d := range [][2]float64{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}} {
+		err := checkAzEl(cmd.Azimuth+d[0]*cmd.Radius, cmd.Elevation+d[1]*cmd.Radius, cmd.Speed, cmd.Speed)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (cmd holographyScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
+	t0 := jsontime(cmd.StartTime)
+	pattern := NewHolographyScanPattern(t0, cmd.NumLines, cmd.Azimuth, cmd.Elevation, cmd.Radius, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
+	return startPattern(ctx, tel, pattern)
+}
+
 type trackCmd struct {
 	StartTime float64 `json:"start_time"`
 	StopTime  float64 `json:"stop_time"`

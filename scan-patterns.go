@@ -118,6 +118,54 @@ func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, 
 	}
 }
 
+// NewHolographyScanPattern scans num straight lines through (az,el), each from -radius
+// to +radius at constant speed. Lines come in perpendicular pairs, and each pair
+// is rotated 180/num degrees from the last. The ACU generates the turnarounds.
+func NewHolographyScanPattern(start time.Time, num int, az, el, radius, speed float64, turnaround time.Duration) *RepeatingScanPattern {
+	const m = 5 // points per line
+	n := num * m
+	azs := make([]float64, n)
+	els := make([]float64, n)
+	vazs := make([]float64, n)
+	vels := make([]float64, n)
+	fazs := make([]int8, n)
+	fels := make([]int8, n)
+	dts := make([]time.Duration, n)
+	ds := 2 * radius / (m - 1)
+	dt := Seconds2Duration(ds / speed)
+	for k := 0; k < num; k++ {
+		theta := float64(k/2)*180/float64(num) + float64(k%2)*90
+		sin, cos := math.Sincos(theta * math.Pi / 180)
+		for i := 0; i < m; i++ {
+			j := k*m + i
+			s := -radius + float64(i)*ds
+			azs[j] = az + s*cos
+			els[j] = el + s*sin
+			vazs[j] = speed * cos
+			vels[j] = speed * sin
+			fazs[j] = 1 // linear interpolation
+			fels[j] = 1
+			dts[j] = dt
+		}
+		j := k*m + m - 1
+		dts[j] = turnaround
+		fazs[j] = 2 // turnaround flag
+		fels[j] = 2
+	}
+	return &RepeatingScanPattern{
+		n:     1,
+		m:     n,
+		azs:   azs,
+		els:   els,
+		vazs:  vazs,
+		vels:  vels,
+		fazs:  fazs,
+		fels:  fels,
+		dts:   dts,
+		start: start,
+	}
+}
+
 // A PathScanPattern follows a path of points.
 type PathScanPattern struct {
 	coordsys string

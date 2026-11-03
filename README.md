@@ -182,6 +182,30 @@ ___
 ```
 
 
+### `/holography-scan`
+
+Scan `num_lines` straight lines through (`azimuth`,`elevation`), each from
+`-radius` to `+radius` at constant `speed`. Lines come in perpendicular pairs,
+and each pair is rotated `180/num_lines` degrees from the last, e.g. for
+`num_lines=50` the lines are at 0°, 90°, 3.6°, 93.6°, ..., 86.4°, 176.4°
+(measured from the +azimuth direction). `num_lines` must be even.
+The ACU generates the turnarounds between lines, which take `turnaround_time` seconds.
+Offsets are in raw azimuth & elevation, i.e. not scaled by cos(elevation).
+
+```sh
+curl 'localhost:5600/holography-scan' -d@- <<___
+{
+  "start_time": 1615586380,
+  "azimuth": 120,
+  "elevation": 45,
+  "radius": 1,
+  "num_lines": 50,
+  "speed": 0.285714,
+  "turnaround_time": 3
+}
+___
+```
+
 ### `/move-to`
 
 Move to the specified position.
