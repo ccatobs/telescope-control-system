@@ -150,21 +150,10 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample
 	switch path.coordsys {
 	case "Horizon":
 		az, el, vaz, vel = x[1], x[2], x[3], x[4]
-	case "ICRS":
+	case "ICRS", "Galactic":
 		var err error
-		ut := Time2Unixtime(t)
-		az, el, err = RADec2AzEl(ut, x[1], x[2])
-		// XXX:TBD velocities
-		slog.Debug("path point", "t", ut, "ra", x[1], "dec", x[2], "az", az, "el", el)
-		if err != nil {
-			return err
-		}
-	case "Galactic":
-		var err error
-		ut := Time2Unixtime(t)
-		az, el, err = GalLonLat2AzEl(ut, x[1], x[2])
-		// XXX:TBD velocities
-		slog.Debug("path point", "t", ut, "l", x[1], "b", x[2], "az", az, "el", el)
+		az, el, vaz, vel, err = celestial2AzElVel(path.coordsys, t, x[1], x[2])
+		slog.Debug("path point", "t", t, "coordsys", path.coordsys, "lon", x[1], "lat", x[2], "az", az, "el", el, "vaz", vaz, "vel", vel)
 		if err != nil {
 			return err
 		}
@@ -179,6 +168,13 @@ func (path PathScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSample
 	iter.index++
 	return nil
 }
+
+const (
+	// time between track points; the ACU spline-interpolates between them
+	trackStep = 10 * time.Second
+	// "The minimum time interval between two samples is 0.05 s."
+	minProgramTrackStep = 50 * time.Millisecond
+)
 
 // A TrackScanPattern tracks a point on the celestial sphere.
 type TrackScanPattern struct {
@@ -211,24 +207,15 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSamp
 	t := iter.t
 
 	// convert ra,dec to az,el
-	var az, el float64
+	var az, el, vaz, vel float64
 
 	switch track.coordsys {
 	case "Horizon":
 		az, el = track.ra, track.dec
-	case "ICRS":
+	case "ICRS", "Galactic":
 		var err error
-		unixtime := float64(t.UnixNano()) * 1e-9
-		az, el, err = RADec2AzEl(unixtime, track.ra, track.dec)
-		slog.Debug("track point", "t", unixtime, "ra", track.ra, "dec", track.dec, "az", az, "el", el)
-		if err != nil {
-			return err
-		}
-	case "Galactic":
-		var err error
-		unixtime := Time2Unixtime(t)
-		az, el, err = GalLonLat2AzEl(unixtime, track.ra, track.dec)
-		slog.Debug("track point", "t", unixtime, "l", track.ra, "b", track.dec, "az", az, "el", el)
+		az, el, vaz, vel, err = celestial2AzElVel(track.coordsys, t, track.ra, track.dec)
+		slog.Debug("track point", "t", t, "coordsys", track.coordsys, "lon", track.ra, "lat", track.dec, "az", az, "el", el, "vaz", vaz, "vel", vel)
 		if err != nil {
 			return err
 		}
@@ -237,16 +224,54 @@ func (track TrackScanPattern) Next(iter *ScanPatternIterator, p *ScanPatternSamp
 	p.T = t
 	p.Az = az
 	p.El = el
+	p.AzVel = vaz
+	p.ElVel = vel
 
 	remaining := track.tmax.Sub(t)
 	if remaining < 0 {
 		return fmt.Errorf("track pattern bad time")
 	}
 
-	dt := 100 * time.Second
-	if 0 < remaining && remaining < dt {
+	// Step by trackStep, landing the last point on tmax. If the final step
+	// would be shorter than minProgramTrackStep, stretch the one before it.
+	dt := trackStep
+	if 0 < remaining && remaining < trackStep+minProgramTrackStep {
 		dt = remaining
 	}
 	iter.t = t.Add(dt)
 	return nil
+}
+
+// celestial2AzEl converts ICRS (ra,dec) or Galactic (l,b) coordinates to az,el at time t.
+func celestial2AzEl(coordsys string, t time.Time, lon, lat float64) (float64, float64, error) {
+	ut := Time2Unixtime(t)
+	switch coordsys {
+	case "ICRS":
+		return RADec2AzEl(ut, lon, lat)
+	case "Galactic":
+		return GalLonLat2AzEl(ut, lon, lat)
+	}
+	return 0, 0, fmt.Errorf("unknown coordsys %q", coordsys)
+}
+
+// celestial2AzElVel is like celestial2AzEl, but also returns the az,el velocities [deg/s],
+// estimated by central difference.
+func celestial2AzElVel(coordsys string, t time.Time, lon, lat float64) (az, el, vaz, vel float64, err error) {
+	const h = 0.5 // [s]
+	az, el, err = celestial2AzEl(coordsys, t, lon, lat)
+	if err != nil {
+		return
+	}
+	az0, el0, err := celestial2AzEl(coordsys, t.Add(-Seconds2Duration(h)), lon, lat)
+	if err != nil {
+		return
+	}
+	az1, el1, err := celestial2AzEl(coordsys, t.Add(Seconds2Duration(h)), lon, lat)
+	if err != nil {
+		return
+	}
+	daz := math.Remainder(az1-az0, 360) // handle wrap at 0/360
+	vaz = daz / (2 * h)
+	vel = (el1 - el0) / (2 * h)
+	return
 }
