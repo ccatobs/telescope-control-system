@@ -167,6 +167,10 @@ curl 'localhost:5600/acu/datasets/Shutter'
 ### `/azimuth-scan`
 
 Scan repeatedly in azimuth, at constant elevation.
+The telescope first moves to the start of the scan, (`azimuth_range[0]`,`elevation`),
+and waits there until shortly before `start_time`.
+`start_time` is optional; if omitted (or 0) the scan starts ~10 seconds after
+the move finishes. If given, it must leave enough time for the move, plus 5 seconds.
 
 ```sh
 curl 'localhost:5600/azimuth-scan' -d@- <<___
@@ -192,7 +196,8 @@ and each pair is rotated `180/num_lines` degrees from the last, e.g. for
 The ACU generates the turnarounds between lines, which take `turnaround_time` seconds.
 The telescope first moves to the center, then starts the scan there, at rest, at
 `start_time`; it turns onto the first line `turnaround_time` seconds later.
-`start_time` must leave enough time for the move, plus 5 seconds.
+`start_time` is optional; if omitted (or 0) the scan starts ~10 seconds after
+the move finishes. If given, it must leave enough time for the move, plus 5 seconds.
 At the end it turns back to the center and stops.
 Offsets are in raw azimuth & elevation, i.e. not scaled by cos(elevation).
 

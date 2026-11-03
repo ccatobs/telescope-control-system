@@ -279,7 +279,7 @@ type azScanCmd struct {
 
 func (cmd azScanCmd) Check() error {
 	// XXX:TBD
-	if err := checkProgramTrackStartTime(cmd.StartTime); err != nil {
+	if err := checkScanStartTime(cmd.StartTime); err != nil {
 		return err
 	}
 
@@ -346,9 +346,61 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 }
 
 func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	t0 := jsontime(cmd.StartTime)
-	pattern := NewAzimuthScanPattern(t0, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
-	return startPattern(ctx, tel, pattern)
+	return moveThenStartPattern(ctx, tel, cmd.AzimuthRange[0], cmd.Elevation, cmd.StartTime, func(t0 time.Time) ScanPattern {
+		return NewAzimuthScanPattern(t0, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
+	})
+}
+
+// Scan start times are optional; 0 means start as soon as possible.
+func checkScanStartTime(startTime float64) error {
+	if startTime == 0 {
+		return nil
+	}
+	return checkProgramTrackStartTime(startTime)
+}
+
+// moveThenStartPattern moves to (az,el), the start of the pattern, waits there
+// until shortly before startTime, then starts the pattern made by newPattern.
+// If startTime is 0, the pattern starts as soon as possible after the move.
+func moveThenStartPattern(ctx context.Context, tel *Telescope, az, el float64, startTime float64, newPattern func(t0 time.Time) ScanPattern) (IsDoneFunc, error) {
+	var t0 time.Time
+	if startTime != 0 {
+		t0 = jsontime(startTime)
+	}
+	moveDone, err := moveToCmd{Azimuth: az, Elevation: el}.Start(ctx, tel)
+	if err != nil {
+		return nil, err
+	}
+	var patternDone IsDoneFunc
+	isDone := func(tel *Telescope) (bool, error) {
+		if patternDone != nil {
+			return patternDone(tel)
+		}
+		done, err := moveDone(tel)
+		if err != nil {
+			return true, err
+		}
+		if !done {
+			return false, nil
+		}
+		// ACU Extension ICD v1.4, section 3:
+		// "mode activation should precede first track time by 5 s"
+		if t0.IsZero() {
+			t0 = time.Now().Add(10 * time.Second)
+		}
+		lead := time.Until(t0)
+		if lead < 5*time.Second {
+			return true, fmt.Errorf("reached start of scan too late to start at %v", t0)
+		}
+		// wait until shortly before the scan
+		if lead > 10*time.Second {
+			return false, nil
+		}
+		slog.Info("at start of scan, starting scan", "start_time", t0)
+		patternDone, err = startPattern(ctx, tel, newPattern(t0))
+		return err != nil, err
+	}
+	return isDone, nil
 }
 
 type holographyScanCmd struct {
@@ -362,7 +414,7 @@ type holographyScanCmd struct {
 }
 
 func (cmd holographyScanCmd) Check() error {
-	if err := checkProgramTrackStartTime(cmd.StartTime); err != nil {
+	if err := checkScanStartTime(cmd.StartTime); err != nil {
 		return err
 	}
 	if cmd.NumLines <= 0 || cmd.NumLines%2 != 0 {
@@ -392,41 +444,10 @@ func (cmd holographyScanCmd) Check() error {
 }
 
 func (cmd holographyScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	t0 := jsontime(cmd.StartTime)
-	pattern := NewHolographyScanPattern(t0, cmd.NumLines, cmd.Azimuth, cmd.Elevation, cmd.Radius, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
-
-	// the pattern starts at rest at the center, so move there first
-	moveDone, err := moveToCmd{Azimuth: cmd.Azimuth, Elevation: cmd.Elevation}.Start(ctx, tel)
-	if err != nil {
-		return nil, err
-	}
-	var patternDone IsDoneFunc
-	isDone := func(tel *Telescope) (bool, error) {
-		if patternDone != nil {
-			return patternDone(tel)
-		}
-		done, err := moveDone(tel)
-		if err != nil {
-			return true, err
-		}
-		if !done {
-			return false, nil
-		}
-		// ACU Extension ICD v1.4, section 3:
-		// "mode activation should precede first track time by 5 s"
-		lead := time.Until(t0)
-		if lead < 5*time.Second {
-			return true, fmt.Errorf("reached scan center too late to start at %v", t0)
-		}
-		// wait at the center until shortly before the scan
-		if lead > 10*time.Second {
-			return false, nil
-		}
-		slog.Info("at scan center, starting scan")
-		patternDone, err = startPattern(ctx, tel, pattern)
-		return err != nil, err
-	}
-	return isDone, nil
+	// the pattern starts at rest at the center
+	return moveThenStartPattern(ctx, tel, cmd.Azimuth, cmd.Elevation, cmd.StartTime, func(t0 time.Time) ScanPattern {
+		return NewHolographyScanPattern(t0, cmd.NumLines, cmd.Azimuth, cmd.Elevation, cmd.Radius, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
+	})
 }
 
 type trackCmd struct {
