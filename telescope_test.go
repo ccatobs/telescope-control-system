@@ -92,6 +92,22 @@ func TestStartPatternUploadsFirst(t *testing.T) {
 	}
 }
 
+// Failures should be reset before uploading a new program track.
+func TestStartPatternFailureReset(t *testing.T) {
+	var log []string
+	tel := NewTelescope(fakeProgramTrackACU(t, &log, false))
+	pattern := NewAzimuthScanPattern(time.Now().Add(15*time.Second), 1, 45, [2]float64{100, 110}, 1, 5*time.Second)
+	if _, err := startPattern(t.Context(), tel, pattern); err != nil {
+		t.Fatal(err)
+	}
+	stop := slices.Index(log, "/Command Stop")
+	reset := slices.Index(log, "/Command Failure Reset")
+	clear := slices.Index(log, "/Command Clear Stack")
+	if stop < 0 || reset < 0 || clear < 0 || !(stop < reset && reset < clear) {
+		t.Errorf("want Stop, Failure Reset, Clear Stack, got %q", log)
+	}
+}
+
 func TestStartPatternUploadFails(t *testing.T) {
 	var log []string
 	tel := NewTelescope(fakeProgramTrackACU(t, &log, true))

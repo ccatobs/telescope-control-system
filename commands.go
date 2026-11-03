@@ -294,6 +294,12 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 		return nil, err
 	}
 
+	// clear any latched failures, e.g. from a previous program track
+	err = tel.acu.FailureReset()
+	if err != nil {
+		return nil, err
+	}
+
 	err = tel.acu.ProgramTrackClear()
 	if err != nil {
 		return nil, err
