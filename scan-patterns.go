@@ -120,62 +120,182 @@ func NewAzimuthScanPattern(start time.Time, num int, el float64, az [2]float64, 
 
 // NewHolographyScanPattern scans num straight lines through (az,el), each from -radius
 // to +radius at constant speed. Lines come in perpendicular pairs, and each pair
-// is rotated 180/num degrees from the last. The ACU generates the turnarounds.
-// The pattern starts & ends at rest at (az,el), so the ACU can ease into & out of it.
-func NewHolographyScanPattern(start time.Time, num int, az, el, radius, speed float64, turnaround time.Duration) *RepeatingScanPattern {
+// is rotated 180/num degrees from the last. The ACU generates the turnarounds
+// between lines, but the lead-in from rest at (az,el) to the first line, and the
+// lead-out from the last line back to rest at (az,el), are sampled here, since
+// the ACU only recognizes turnarounds that reverse direction in place.
+func NewHolographyScanPattern(start time.Time, num int, az, el, radius, speed float64, turnaround time.Duration) (*RepeatingScanPattern, error) {
 	const m = 5 // points per line
-	n := num*m + 2
-	azs := make([]float64, n)
-	els := make([]float64, n)
-	vazs := make([]float64, n)
-	vels := make([]float64, n)
-	fazs := make([]int8, n)
-	fels := make([]int8, n)
-	dts := make([]time.Duration, n)
+	p := &RepeatingScanPattern{n: 1, start: start}
+	add := func(az, el, vaz, vel float64, flag int8, dt time.Duration) {
+		p.azs = append(p.azs, az)
+		p.els = append(p.els, el)
+		p.vazs = append(p.vazs, vaz)
+		p.vels = append(p.vels, vel)
+		p.fazs = append(p.fazs, flag)
+		p.fels = append(p.fels, flag)
+		p.dts = append(p.dts, dt)
+		p.m++
+	}
+	direction := func(k int) (float64, float64) {
+		theta := float64(k/2)*180/float64(num) + float64(k%2)*90
+		return math.Sincos(theta * math.Pi / 180)
+	}
 
-	// start at rest at the center, then turn onto the first line
-	azs[0], els[0] = az, el
-	fazs[0], fels[0] = 2, 2 // turnaround flag
-	dts[0] = turnaround
+	// addLead adds the samples strictly between (az0,el0) at t=0 and (az1,el1) at t=turnaround.
+	n := int(math.Ceil(turnaround.Seconds() / leadStep.Seconds()))
+	step := turnaround / time.Duration(n)
+	addLead := func(az0, el0, vaz0, vel0, az1, el1, vaz1, vel1 float64) error {
+		T := turnaround.Seconds()
+		trAz, err := newJerkTransition(az0, vaz0, az1, vaz1, T)
+		if err != nil {
+			return fmt.Errorf("azimuth: %w", err)
+		}
+		trEl, err := newJerkTransition(el0, vel0, el1, vel1, T)
+		if err != nil {
+			return fmt.Errorf("elevation: %w", err)
+		}
+		if err := trAz.checkLimits(azimuthAccelMax, azimuthJerkMax); err != nil {
+			return fmt.Errorf("azimuth: %w", err)
+		}
+		if err := trEl.checkLimits(elevationAccelMax, elevationJerkMax); err != nil {
+			return fmt.Errorf("elevation: %w", err)
+		}
+		for i := 1; i < n; i++ {
+			t := float64(i) * step.Seconds()
+			a, va := trAz.at(t)
+			e, ve := trEl.at(t)
+			add(a, e, va, ve, 0, step)
+		}
+		return nil
+	}
+
+	// lead-in: from rest at the center to the start of the first line
+	sin, cos := direction(0)
+	add(az, el, 0, 0, 0, step)
+	err := addLead(az, el, 0, 0, az-radius*cos, el-radius*sin, speed*cos, speed*sin)
+	if err != nil {
+		return nil, fmt.Errorf("lead-in: %w", err)
+	}
 
 	ds := 2 * radius / (m - 1)
 	dt := Seconds2Duration(ds / speed)
 	for k := 0; k < num; k++ {
-		theta := float64(k/2)*180/float64(num) + float64(k%2)*90
-		sin, cos := math.Sincos(theta * math.Pi / 180)
-		for i := 0; i < m; i++ {
-			j := 1 + k*m + i
+		sin, cos = direction(k)
+		for i := 0; i < m-1; i++ {
 			s := -radius + float64(i)*ds
-			azs[j] = az + s*cos
-			els[j] = el + s*sin
-			vazs[j] = speed * cos
-			vels[j] = speed * sin
-			fazs[j] = 1 // linear interpolation
-			fels[j] = 1
-			dts[j] = dt
+			add(az+s*cos, el+s*sin, speed*cos, speed*sin, 1, dt) // linear interpolation
 		}
-		j := 1 + k*m + m - 1
-		dts[j] = turnaround
-		fazs[j] = 2 // turnaround flag
-		fels[j] = 2
+		if k < num-1 {
+			add(az+radius*cos, el+radius*sin, speed*cos, speed*sin, 2, turnaround) // turnaround flag
+		} else {
+			add(az+radius*cos, el+radius*sin, speed*cos, speed*sin, 1, step)
+		}
 	}
 
-	// end at rest at the center
-	azs[n-1], els[n-1] = az, el
-	fazs[n-1], fels[n-1] = 1, 1
-
-	return &RepeatingScanPattern{
-		n:     1,
-		m:     n,
-		azs:   azs,
-		els:   els,
-		vazs:  vazs,
-		vels:  vels,
-		fazs:  fazs,
-		fels:  fels,
-		dts:   dts,
-		start: start,
+	// lead-out: from the end of the last line to rest at the center
+	err = addLead(az+radius*cos, el+radius*sin, speed*cos, speed*sin, az, el, 0, 0)
+	if err != nil {
+		return nil, fmt.Errorf("lead-out: %w", err)
 	}
+	add(az, el, 0, 0, 0, step)
+
+	return p, nil
+}
+
+// time between lead-in & lead-out samples
+const leadStep = 100 * time.Millisecond
+
+// A jerkTransition moves one axis from (p0,v0) at t=0 to (p1,v1) at t=T, with zero
+// acceleration at both ends, using a jerk of j, -j, j, switching at t1 and t1+T/2.
+// This is the profile used by the turnarounds in the housekeeping holography
+// pattern scan_50_turns_scans.dat.
+type jerkTransition struct {
+	p0, v0, j, t1, T float64
+}
+
+func newJerkTransition(p0, v0, p1, v1, T float64) (jerkTransition, error) {
+	tr := jerkTransition{p0: p0, v0: v0, T: T}
+	dv := v1 - v0
+	dx := p1 - p0 - v0*T
+	if dv == 0 && dx == 0 {
+		return tr, nil
+	}
+	// for unit jerk, dv & dx at T as functions of t1
+	unit := func(t1 float64) (float64, float64) {
+		x, v := jerkTransition{j: 1, t1: t1, T: T}.at(T)
+		return v, x
+	}
+	// find t1 in [0,T/2] where (dv,dx) is parallel to unit(t1),
+	// choosing the root with the smallest jerk
+	h := func(t1 float64) float64 {
+		uv, ux := unit(t1)
+		return uv*dx - ux*dv
+	}
+	const ngrid = 1000
+	best := math.Inf(1)
+	for i := 0; i < ngrid; i++ {
+		a := T / 2 * float64(i) / ngrid
+		b := T / 2 * float64(i+1) / ngrid
+		ha, hb := h(a), h(b)
+		if ha*hb > 0 {
+			continue
+		}
+		for range 60 {
+			c := (a + b) / 2
+			if hc := h(c); ha*hc <= 0 {
+				b = c
+			} else {
+				a, ha = c, hc
+			}
+		}
+		t1 := (a + b) / 2
+		uv, ux := unit(t1)
+		j := (dv*uv + dx*ux) / (uv*uv + ux*ux)
+		if math.Abs(j) < math.Abs(best) {
+			best = j
+			tr.t1 = t1
+		}
+	}
+	if math.IsInf(best, 0) {
+		return tr, fmt.Errorf("no constant-jerk transition in %g s", T)
+	}
+	tr.j = best
+	return tr, nil
+}
+
+// at returns the position & velocity at time t in [0,T].
+func (tr jerkTransition) at(t float64) (float64, float64) {
+	p, v, a := tr.p0, tr.v0, 0.0
+	t0 := 0.0
+	for _, phase := range [...]struct{ end, j float64 }{
+		{tr.t1, tr.j},
+		{tr.t1 + tr.T/2, -tr.j},
+		{tr.T, tr.j},
+	} {
+		if t <= t0 {
+			break
+		}
+		// phases may be empty, e.g. if t1 = 0
+		if dt := math.Min(t, phase.end) - t0; dt > 0 {
+			p += v*dt + a*dt*dt/2 + phase.j*dt*dt*dt/6
+			v += a*dt + phase.j*dt*dt/2
+			a += phase.j * dt
+		}
+		t0 = phase.end
+	}
+	return p, v
+}
+
+func (tr jerkTransition) checkLimits(accelMax, jerkMax float64) error {
+	if j := math.Abs(tr.j); j > jerkMax {
+		return fmt.Errorf("jerk (%g) exceeds %g; try a longer turnaround_time", j, jerkMax)
+	}
+	// peak acceleration is at t1 or t1+T/2
+	if a := math.Abs(tr.j) * math.Max(tr.t1, tr.T/2-tr.t1); a > accelMax {
+		return fmt.Errorf("acceleration (%g) exceeds %g; try a longer turnaround_time", a, accelMax)
+	}
+	return nil
 }
 
 // A PathScanPattern follows a path of points.

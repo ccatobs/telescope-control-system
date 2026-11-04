@@ -352,8 +352,8 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 }
 
 func (cmd azScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	return moveThenStartPattern(ctx, tel, cmd.AzimuthRange[0], cmd.Elevation, cmd.StartTime, func(t0 time.Time) ScanPattern {
-		return NewAzimuthScanPattern(t0, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
+	return moveThenStartPattern(ctx, tel, cmd.AzimuthRange[0], cmd.Elevation, cmd.StartTime, func(t0 time.Time) (ScanPattern, error) {
+		return NewAzimuthScanPattern(t0, cmd.NumScans, cmd.Elevation, cmd.AzimuthRange, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime)), nil
 	})
 }
 
@@ -368,7 +368,7 @@ func checkScanStartTime(startTime float64) error {
 // moveThenStartPattern moves to (az,el), the start of the pattern, waits there
 // until shortly before startTime, then starts the pattern made by newPattern.
 // If startTime is 0, the pattern starts as soon as possible after the move.
-func moveThenStartPattern(ctx context.Context, tel *Telescope, az, el float64, startTime float64, newPattern func(t0 time.Time) ScanPattern) (IsDoneFunc, error) {
+func moveThenStartPattern(ctx context.Context, tel *Telescope, az, el float64, startTime float64, newPattern func(t0 time.Time) (ScanPattern, error)) (IsDoneFunc, error) {
 	var t0 time.Time
 	if startTime != 0 {
 		t0 = jsontime(startTime)
@@ -403,7 +403,11 @@ func moveThenStartPattern(ctx context.Context, tel *Telescope, az, el float64, s
 			return false, nil
 		}
 		slog.Info("at start of scan, starting scan", "start_time", t0)
-		patternDone, err = startPattern(ctx, tel, newPattern(t0))
+		pattern, err := newPattern(t0)
+		if err != nil {
+			return true, err
+		}
+		patternDone, err = startPattern(ctx, tel, pattern)
 		return err != nil, err
 	}
 	return isDone, nil
@@ -439,21 +443,31 @@ func (cmd holographyScanCmd) Check() error {
 	if 2*cmd.Radius/cmd.Speed < 4*0.05 {
 		return fmt.Errorf("lines too short for speed: points would be < 0.05 s apart")
 	}
-	// the extremes of the pattern
-	for _, d := range [][2]float64{{-1, -1}, {-1, 1}, {1, -1}, {1, 1}} {
-		err := checkAzEl(cmd.Azimuth+d[0]*cmd.Radius, cmd.Elevation+d[1]*cmd.Radius, cmd.Speed, cmd.Speed)
-		if err != nil {
+	// check every point, including the lead-in & lead-out
+	pattern, err := cmd.newPattern(time.Now())
+	if err != nil {
+		return err
+	}
+	iter := pattern.Iterator()
+	for !pattern.Done(iter) {
+		var pt ScanPatternSample
+		if err := pattern.Next(iter, &pt); err != nil {
+			return err
+		}
+		if err := checkAzEl(pt.Az, pt.El, pt.AzVel, pt.ElVel); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+func (cmd holographyScanCmd) newPattern(t0 time.Time) (ScanPattern, error) {
+	return NewHolographyScanPattern(t0, cmd.NumLines, cmd.Azimuth, cmd.Elevation, cmd.Radius, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
+}
+
 func (cmd holographyScanCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
 	// the pattern starts at rest at the center
-	return moveThenStartPattern(ctx, tel, cmd.Azimuth, cmd.Elevation, cmd.StartTime, func(t0 time.Time) ScanPattern {
-		return NewHolographyScanPattern(t0, cmd.NumLines, cmd.Azimuth, cmd.Elevation, cmd.Radius, cmd.Speed, Seconds2Duration(cmd.TurnaroundTime))
-	})
+	return moveThenStartPattern(ctx, tel, cmd.Azimuth, cmd.Elevation, cmd.StartTime, cmd.newPattern)
 }
 
 type trackCmd struct {

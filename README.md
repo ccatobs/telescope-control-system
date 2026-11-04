@@ -195,7 +195,10 @@ and each pair is rotated `180/num_lines` degrees from the last, e.g. for
 (measured from the +azimuth direction). `num_lines` must be even.
 The ACU generates the turnarounds between lines, which take `turnaround_time` seconds.
 The telescope first moves to the center, then starts the scan there, at rest, at
-`start_time`; it turns onto the first line `turnaround_time` seconds later.
+`start_time`; it reaches the first line `turnaround_time` seconds later.
+At the end it returns to the center, also over `turnaround_time` seconds.
+The TCS samples this lead-in & lead-out every 0.1 seconds, using the same
+constant-jerk profile as the turnarounds in `scan_50_turns_scans.dat`.
 `start_time` is optional; if omitted (or 0) the scan starts ~10 seconds after
 the move finishes. If given, it must leave enough time for the move, plus 5 seconds.
 At the end it turns back to the center and stops.
