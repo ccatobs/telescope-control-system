@@ -84,6 +84,15 @@ Abort the current command.
 curl -X POST 'http://localhost:5600/abort'
 ```
 
+### `/reset`
+
+Abort the current command (if any), stop the telescope, and reset ACU failures.
+Use after an E-stop, or to get the telescope back to a known state.
+
+```sh
+curl -X POST 'localhost:5600/reset'
+```
+
 ### `/azimuth-scan`
 
 Scan repeatedly in azimuth, at constant elevation.

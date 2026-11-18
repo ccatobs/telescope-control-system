@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log/slog"
@@ -416,6 +417,30 @@ func main() {
 		if !<-c {
 			err = fmt.Errorf("nothing to abort")
 			statusCode = http.StatusConflict // not sure if this is the most appropriate code
+		}
+		jsonResponse(w, id, err, statusCode)
+	})
+
+	mux.HandleFunc("POST /reset", func(w http.ResponseWriter, req *http.Request) {
+		id := newCmdID()
+		err := checkNoBody(req.Body)
+		if err != nil {
+			jsonResponse(w, id, err, http.StatusBadRequest)
+			return
+		}
+		logNewCmd(id, "reset", nil)
+		c := make(chan bool)
+		abort <- c
+		if <-c {
+			slog.Info("aborted running command", "cmd", id)
+		}
+		// stop before resetting failures, so the axes don't resume a previous mode;
+		// try both, even if stopping fails (e.g. because of a latched failure)
+		err = errors.Join(tel.Stop(), acu.FailureReset())
+		statusCode := http.StatusOK
+		if err != nil {
+			logCmdError(id, err)
+			statusCode = http.StatusInternalServerError
 		}
 		jsonResponse(w, id, err, statusCode)
 	})
