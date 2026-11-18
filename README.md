@@ -298,7 +298,7 @@ curl 'localhost:5600/acu/status'
 
 ### `/acu/stow`
 
-Move to the stow position and insert the stow pins.
+Insert the stow pins, without moving the telescope.
 Aborts the running command, if any.
 Done once the elevation axis is in its stow position, the pins are inserted, and both axes have stopped.
 
@@ -310,7 +310,7 @@ curl -X POST 'localhost:5600/acu/stow'
 
 Move to the survival position and insert the stow pins.
 Aborts the running command, if any.
-Done once both axes have reached their commanded positions and stopped.
+Done once both axes have reached their commanded positions, the pins are inserted, and both axes have stopped.
 
 ```sh
 curl -X POST 'localhost:5600/acu/survival-mode'

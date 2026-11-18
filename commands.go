@@ -183,16 +183,20 @@ func onCommandedPosition(rec *datasets.StatusGeneral8100) bool {
 		(math.Abs(rec.ElevationCurrentPosition-rec.ElevationCommandedPosition) < positionTol)
 }
 
-// stowCmd moves to the stow position and inserts the stow pins.
+// stowPinsInserted reports whether the elevation stow pins are inserted.
+func stowPinsInserted(rec *datasets.StatusGeneral8100) bool {
+	return rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusAllInserted ||
+		rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusNotAvailable
+}
+
+// stowCmd inserts the stow pins. It does not move the telescope.
 type stowCmd struct{}
 
 func (cmd stowCmd) Check() error { return nil }
 
 func (cmd stowCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
 	return startMode(tel, "Stow", []uint8{datasets.AzimuthModeStow}, func(rec *datasets.StatusGeneral8100) bool {
-		return rec.ElevationAxisInStowPosition &&
-			(rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusAllInserted ||
-				rec.ElevationStowPinsStatus == datasets.ElevationStowPinsStatusNotAvailable)
+		return rec.ElevationAxisInStowPosition && stowPinsInserted(rec)
 	})
 }
 
@@ -216,7 +220,9 @@ type survivalModeCmd struct{}
 func (cmd survivalModeCmd) Check() error { return nil }
 
 func (cmd survivalModeCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, error) {
-	return startMode(tel, "SurvivalMode", []uint8{datasets.AzimuthModeSurvivalMode}, onCommandedPosition)
+	return startMode(tel, "SurvivalMode", []uint8{datasets.AzimuthModeSurvivalMode}, func(rec *datasets.StatusGeneral8100) bool {
+		return onCommandedPosition(rec) && stowPinsInserted(rec)
+	})
 }
 
 /*
