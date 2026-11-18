@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"math"
 	"os"
+	"sync"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -20,13 +21,21 @@ type Telescope struct {
 	acu      *ACU
 	pointing Pointing
 	rec      datasets.StatusGeneral8100
+	uploads  *sync.WaitGroup // background program track uploads
 }
 
 func NewTelescope(acu *ACU) *Telescope {
 	return &Telescope{
 		acu:      acu,
 		pointing: NewPointing(),
+		uploads:  new(sync.WaitGroup),
 	}
+}
+
+// WaitForUploads blocks until all background program track uploads have exited.
+// Uploads only exit early when their context is cancelled.
+func (t Telescope) WaitForUploads() {
+	t.uploads.Wait()
 }
 
 func (t *Telescope) UpdateStatus() error {
@@ -180,6 +189,12 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern, f
 
 		if n <= 0 {
 			return fmt.Errorf("upload: no points")
+		}
+
+		// don't upload a batch computed after the command ended
+		if ctx.Err() != nil {
+			slog.Info("upload: cancelled")
+			return nil
 		}
 
 		total += n

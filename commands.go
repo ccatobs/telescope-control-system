@@ -306,6 +306,9 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 		return nil, err
 	}
 
+	// a previous upload must not add points after we clear the stack
+	tel.WaitForUploads()
+
 	err = tel.acu.ProgramTrackClear()
 	if err != nil {
 		return nil, err
@@ -315,9 +318,9 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 	// buffered, so the upload goroutine can exit if nobody's listening
 	uploadErrChan := make(chan error, 1)
 	firstBatch := make(chan struct{})
-	go func() {
+	tel.uploads.Go(func() {
 		uploadErrChan <- tel.UploadScanPattern(ctx, pattern, firstBatch)
-	}()
+	})
 
 	// the ACU won't enter program track mode with an empty stack
 	select {

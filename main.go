@@ -381,6 +381,9 @@ func main() {
 					break
 				}
 			}
+			// stop any background work (e.g. pattern uploads), however the command ended
+			cancel()
+			tel.WaitForUploads()
 
 			running.Store(nil)
 			slog.Info("command done", "cmd", qc.id)
