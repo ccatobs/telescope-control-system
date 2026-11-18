@@ -506,7 +506,15 @@ func main() {
 		jsonResponse(w, id, err, status)
 	})
 
-	mux.HandleFunc("POST /clear-track", func(w http.ResponseWriter, req *http.Request) {
+	// deprecated wraps a handler for an old endpoint name, logging a warning.
+	deprecated := func(newEndpoint string, h http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, req *http.Request) {
+			slog.Warn("deprecated endpoint", "endpoint", req.URL.Path, "use", newEndpoint)
+			h(w, req)
+		}
+	}
+
+	clearPath := func(w http.ResponseWriter, req *http.Request) {
 		id := newCmdID()
 		err := checkNoBody(req.Body)
 		if err != nil {
@@ -521,7 +529,9 @@ func main() {
 			statusCode = http.StatusBadRequest
 		}
 		jsonResponse(w, id, err, statusCode)
-	})
+	}
+	mux.HandleFunc("POST /path/clear", clearPath)
+	mux.HandleFunc("POST /clear-track", deprecated("/path/clear", clearPath)) // deprecated
 
 	mux.HandleFunc("GET /telescope-position", func(w http.ResponseWriter, req *http.Request) {
 		err := json.NewEncoder(w).Encode(&tel_pos)
@@ -565,14 +575,17 @@ func main() {
 	}
 	mux.HandleFunc("POST /acu/position-broadcast", commandHandler(paramsCmd[enablePositionBroadcastCmd]))
 	mux.HandleFunc("POST /acu/spem", commandHandler(paramsCmd[setSPEMCmd]))
+	mux.HandleFunc("POST /acu/stow", commandHandler(noParamsCmd(stowCmd{})))
+	mux.HandleFunc("POST /acu/survival-mode", commandHandler(noParamsCmd(survivalModeCmd{})))
+	mux.HandleFunc("POST /acu/unstow", commandHandler(noParamsCmd(unstowCmd{})))
 	mux.HandleFunc("POST /azimuth-scan", commandHandler(paramsCmd[azScanCmd]))
 	mux.HandleFunc("POST /holography-scan", commandHandler(paramsCmd[holographyScanCmd]))
 	mux.HandleFunc("POST /move-to", commandHandler(paramsCmd[moveToCmd]))
 	mux.HandleFunc("POST /path", commandHandler(paramsCmd[pathCmd]))
-	mux.HandleFunc("POST /stow", commandHandler(noParamsCmd(stowCmd{})))
-	mux.HandleFunc("POST /survival-mode", commandHandler(noParamsCmd(survivalModeCmd{})))
+	mux.HandleFunc("POST /stow", deprecated("/acu/stow", commandHandler(noParamsCmd(stowCmd{}))))                           // deprecated
+	mux.HandleFunc("POST /survival-mode", deprecated("/acu/survival-mode", commandHandler(noParamsCmd(survivalModeCmd{})))) // deprecated
 	mux.HandleFunc("POST /track", commandHandler(paramsCmd[trackCmd]))
-	mux.HandleFunc("POST /unstow", commandHandler(noParamsCmd(unstowCmd{})))
+	mux.HandleFunc("POST /unstow", deprecated("/acu/unstow", commandHandler(noParamsCmd(unstowCmd{})))) // deprecated
 
 	// catch-all: JSON 404 & 405 responses
 	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {

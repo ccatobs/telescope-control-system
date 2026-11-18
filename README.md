@@ -170,6 +170,14 @@ curl 'localhost:5600/path' -d@- <<___
 ___
 ```
 
+### `/path/clear`
+
+Clear the current program track from the telescope.
+
+```sh
+curl -X POST 'localhost:5600/path/clear'
+```
+
 ### `/track`
 
 Track a point on the sky.
@@ -185,14 +193,6 @@ curl 'localhost:5600/track' -d@- <<___
 }
 ___
 ```
-### `/clear-track`
-
-Clear the current program track from telescope
-
-```sh
-curl -X POST 'localhost:5600/clear-track'
-```
-
 
 ### `/status`
 
@@ -207,35 +207,6 @@ curl 'localhost:5600/status'
 ```json
 {"status":"ok","command":{"id":1790171339201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1790171340.12}}
 {"status":"ok","command":null}
-```
-
-### `/stow`
-
-Move to the stow position and insert the stow pins.
-Aborts the running command, if any.
-Done once the elevation axis is in its stow position, the pins are inserted, and both axes have stopped.
-
-```sh
-curl -X POST 'localhost:5600/stow'
-```
-
-### `/survival-mode`
-
-Move to the survival position.
-Aborts the running command, if any.
-Done once both axes have reached their commanded positions and stopped.
-
-```sh
-curl -X POST 'localhost:5600/survival-mode'
-```
-
-### `/unstow`
-
-Retract the stow pins.
-Done once the pins are retracted and both axes have stopped.
-
-```sh
-curl -X POST 'localhost:5600/unstow'
 ```
 
 ### `/telescope-position`
@@ -325,3 +296,31 @@ Get the raw status of the ACU.
 curl 'localhost:5600/acu/status'
 ```
 
+### `/acu/stow`
+
+Move to the stow position and insert the stow pins.
+Aborts the running command, if any.
+Done once the elevation axis is in its stow position, the pins are inserted, and both axes have stopped.
+
+```sh
+curl -X POST 'localhost:5600/acu/stow'
+```
+
+### `/acu/survival-mode`
+
+Move to the survival position and insert the stow pins.
+Aborts the running command, if any.
+Done once both axes have reached their commanded positions and stopped.
+
+```sh
+curl -X POST 'localhost:5600/acu/survival-mode'
+```
+
+### `/acu/unstow`
+
+Retract the stow pins.
+Done once the pins are retracted and both axes have stopped.
+
+```sh
+curl -X POST 'localhost:5600/acu/unstow'
+```

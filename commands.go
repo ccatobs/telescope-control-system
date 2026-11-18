@@ -210,7 +210,7 @@ func (cmd unstowCmd) Start(ctx context.Context, tel *Telescope) (IsDoneFunc, err
 	})
 }
 
-// survivalModeCmd moves to the survival position.
+// survivalModeCmd moves to the survival position & inserts the stow pins.
 type survivalModeCmd struct{}
 
 func (cmd survivalModeCmd) Check() error { return nil }
