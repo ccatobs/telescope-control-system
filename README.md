@@ -84,86 +84,6 @@ Abort the current command.
 curl -X POST 'http://localhost:5600/abort'
 ```
 
-### `/acu/failure-reset`
-
-Reset failures. Needed after E-stops.
-
-```sh
-curl -X POST 'http://localhost:5600/acu/failure-reset'
-```
-
-### `/acu/position-broadcast`
-
-Enable the position broadcast UDP stream, or change where it's sent to.
-
-```sh
-curl -X POST 'localhost:5600/acu/position-broadcast' -d@- <<___
-{
-    "destination_host": "host.name",
-    "destination_port": 100000
-}
-___
-```
-
-### `/acu/reboot`
-
-Reboot the ACU.
-
-```sh
-curl -X POST 'http://localhost:5600/acu/reboot'
-```
-
-### `/acu/spem`
-
-Set parameters of the ACU's systematic pointing error model (SPEM).
-Any subset of the parameters may be given; the rest are left unchanged.
-Units are mdeg, except `LEL_velocity` which is deg/s.
-
-Parameters: `IA`, `IE`, `TFC`, `TF`, `TFS`, `TFEC`, `TFE`, `TFES`, `AN`, `AW`,
-`AN2`, `AW2`, `CA`, `NPAE`, `AES`, `AEC`, `AES2`, `AEC2`, `EES`, `EEC`, `EES2`,
-`EEC2`, `NRX`, `NRY`, `LELA`, `LEVA`, `LELE`, `LEVE`, `LEL_velocity`.
-
-```sh
-curl 'localhost:5600/acu/spem' -d@- <<___
-{
-    "IA": 1.5,
-    "IE": -0.3,
-    "CA": 0.02
-}
-___
-```
-
-The current values can be read with `/acu/datasets/CmdSPEMParameter`.
-
-### `/acu/status`
-
-Get the raw status of the ACU.
-
-```sh
-curl 'localhost:5600/acu/status'
-```
-
-### `/acu/datasets`
-
-List the names of the available ACU datasets.
-
-```sh
-curl 'localhost:5600/acu/datasets'
-```
-
-```json
-["BusStations","CmdPointingCorrection",...,"SunAvoidance"]
-```
-
-### `/acu/datasets/<name>`
-
-Get an ACU dataset as JSON, with field names and coded values as the ACU reports them.
-Undefined (NaN) values are `null`.
-
-```sh
-curl 'localhost:5600/acu/datasets/Shutter'
-```
-
 ### `/azimuth-scan`
 
 Scan repeatedly in azimuth, at constant elevation.
@@ -321,3 +241,87 @@ curl -X POST 'localhost:5600/unstow'
 ### `/telescope-position`
 
 Get details of telescope position (lat, long, elevation)
+
+## ACU Commands
+
+Lower-level commands which talk to the ACU directly.
+
+### `/acu/datasets`
+
+List the names of the available ACU datasets.
+
+```sh
+curl 'localhost:5600/acu/datasets'
+```
+
+```json
+["BusStations","CmdPointingCorrection",...,"SunAvoidance"]
+```
+
+### `/acu/datasets/<name>`
+
+Get an ACU dataset as JSON, with field names and coded values as the ACU reports them.
+Undefined (NaN) values are `null`.
+
+```sh
+curl 'localhost:5600/acu/datasets/Shutter'
+```
+### `/acu/failure-reset`
+
+Reset failures. Needed after E-stops.
+
+```sh
+curl -X POST 'http://localhost:5600/acu/failure-reset'
+```
+
+### `/acu/position-broadcast`
+
+Enable the position broadcast UDP stream, or change where it's sent to.
+
+```sh
+curl -X POST 'localhost:5600/acu/position-broadcast' -d@- <<___
+{
+    "destination_host": "host.name",
+    "destination_port": 100000
+}
+___
+```
+
+### `/acu/reboot`
+
+Reboot the ACU.
+
+```sh
+curl -X POST 'http://localhost:5600/acu/reboot'
+```
+
+### `/acu/spem`
+
+Set parameters of the ACU's systematic pointing error model (SPEM).
+Any subset of the parameters may be given; the rest are left unchanged.
+Units are mdeg, except `LEL_velocity` which is deg/s.
+
+Parameters: `IA`, `IE`, `TFC`, `TF`, `TFS`, `TFEC`, `TFE`, `TFES`, `AN`, `AW`,
+`AN2`, `AW2`, `CA`, `NPAE`, `AES`, `AEC`, `AES2`, `AEC2`, `EES`, `EEC`, `EES2`,
+`EEC2`, `NRX`, `NRY`, `LELA`, `LEVA`, `LELE`, `LEVE`, `LEL_velocity`.
+
+```sh
+curl 'localhost:5600/acu/spem' -d@- <<___
+{
+    "IA": 1.5,
+    "IE": -0.3,
+    "CA": 0.02
+}
+___
+```
+
+The current values can be read with `/acu/datasets/CmdSPEMParameter`.
+
+### `/acu/status`
+
+Get the raw status of the ACU.
+
+```sh
+curl 'localhost:5600/acu/status'
+```
+
