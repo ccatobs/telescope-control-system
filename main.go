@@ -150,6 +150,23 @@ func checkNoBody(body io.Reader) error {
 	return nil
 }
 
+// cmdParser parses a request body into a Command & its user tags.
+type cmdParser func(body io.Reader) (Command, Tags, error)
+
+// paramsCmd is a cmdParser for commands taking JSON parameters.
+func paramsCmd[T Command](body io.Reader) (Command, Tags, error) {
+	var x T
+	tags, err := decodeCmdBody(body, &x)
+	return x, tags, err
+}
+
+// noParamsCmd returns a cmdParser for commands taking no parameters.
+func noParamsCmd(cmd Command) cmdParser {
+	return func(body io.Reader) (Command, Tags, error) {
+		return cmd, nil, checkNoBody(body)
+	}
+}
+
 // queuedCmd is a Command tagged with its ID, endpoint, and user tags.
 type queuedCmd struct {
 	id       uint64
@@ -372,60 +389,38 @@ func main() {
 	// build http API
 	mux := http.NewServeMux()
 
-	mux.Handle("GET /healthz", http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, req *http.Request) {
 		err := tel.Ready()
 		statusCode := http.StatusServiceUnavailable
 		if err == nil {
 			statusCode = http.StatusOK
 		}
 		jsonResponse(w, 0, err, statusCode)
-	}))
+	})
 
-	mux.HandleFunc("/status", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" {
-			err := fmt.Errorf("method not GET")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("GET /status", func(w http.ResponseWriter, req *http.Request) {
 		statusResponse(w, running.Load())
 	})
 
-	mux.HandleFunc("/abort", func(w http.ResponseWriter, req *http.Request) {
-		var err error
-		var statusCode int
-
-		var id uint64
-		if req.Method == "POST" {
-			id = newCmdID()
-			err = checkNoBody(req.Body)
-			if err != nil {
-				jsonResponse(w, id, err, http.StatusBadRequest)
-				return
-			}
-			logNewCmd(id, "abort", nil)
-			c := make(chan bool)
-			abort <- c
-			if <-c {
-				statusCode = http.StatusOK
-			} else {
-				err = fmt.Errorf("nothing to abort")
-				statusCode = http.StatusConflict // not sure if this is the most appropriate code
-			}
-		} else {
-			err = fmt.Errorf("method not POST")
-			statusCode = http.StatusMethodNotAllowed
+	mux.HandleFunc("POST /abort", func(w http.ResponseWriter, req *http.Request) {
+		id := newCmdID()
+		err := checkNoBody(req.Body)
+		if err != nil {
+			jsonResponse(w, id, err, http.StatusBadRequest)
+			return
 		}
-
+		logNewCmd(id, "abort", nil)
+		c := make(chan bool)
+		abort <- c
+		statusCode := http.StatusOK
+		if !<-c {
+			err = fmt.Errorf("nothing to abort")
+			statusCode = http.StatusConflict // not sure if this is the most appropriate code
+		}
 		jsonResponse(w, id, err, statusCode)
 	})
 
-	mux.HandleFunc("/acu/status", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" {
-			err := fmt.Errorf("method not GET")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
-
+	mux.HandleFunc("GET /acu/status", func(w http.ResponseWriter, req *http.Request) {
 		var rec datasets.StatusGeneral8100
 		err := acu.StatusGeneral8100Get(&rec)
 		if err != nil {
@@ -447,25 +442,14 @@ func main() {
 		}
 	})
 
-	mux.HandleFunc("/acu/datasets", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" {
-			err := fmt.Errorf("method not GET")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("GET /acu/datasets", func(w http.ResponseWriter, req *http.Request) {
 		err := json.NewEncoder(w).Encode(slices.Sorted(maps.Keys(acuDatasets)))
 		if err != nil {
 			logError(err)
 		}
 	})
 
-	mux.HandleFunc("/acu/datasets/{name}", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" {
-			err := fmt.Errorf("method not GET")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
-
+	mux.HandleFunc("GET /acu/datasets/{name}", func(w http.ResponseWriter, req *http.Request) {
 		name := req.PathValue("name")
 		newRec, ok := acuDatasets[name]
 		if !ok {
@@ -490,13 +474,7 @@ func main() {
 		w.Write(append(b, '\n'))
 	})
 
-	mux.HandleFunc("/acu/failure-reset", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "POST" {
-			err := fmt.Errorf("method not POST")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
-
+	mux.HandleFunc("POST /acu/failure-reset", func(w http.ResponseWriter, req *http.Request) {
 		id := newCmdID()
 		err := checkNoBody(req.Body)
 		if err != nil {
@@ -512,13 +490,7 @@ func main() {
 		jsonResponse(w, id, err, status)
 	})
 
-	mux.HandleFunc("/acu/reboot", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "POST" {
-			err := fmt.Errorf("method not POST")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
-
+	mux.HandleFunc("POST /acu/reboot", func(w http.ResponseWriter, req *http.Request) {
 		id := newCmdID()
 		err := checkNoBody(req.Body)
 		if err != nil {
@@ -534,13 +506,7 @@ func main() {
 		jsonResponse(w, id, err, status)
 	})
 
-	mux.HandleFunc("/clear-track", func(w http.ResponseWriter, req *http.Request) {
-		var statusCode int
-		if req.Method != "POST" {
-			err := fmt.Errorf("method not POST")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("POST /clear-track", func(w http.ResponseWriter, req *http.Request) {
 		id := newCmdID()
 		err := checkNoBody(req.Body)
 		if err != nil {
@@ -549,128 +515,82 @@ func main() {
 		}
 		logNewCmd(id, "clear program track stack", nil)
 		err = acu.ProgramTrackClear()
+		statusCode := http.StatusOK
 		if err != nil {
 			logCmdError(id, err)
 			statusCode = http.StatusBadRequest
-		} else {
-			statusCode = http.StatusOK
 		}
 		jsonResponse(w, id, err, statusCode)
 	})
 
-	mux.HandleFunc("/telescope-position", func(w http.ResponseWriter, req *http.Request) {
-		if req.Method != "GET" {
-			err := fmt.Errorf("method not GET")
-			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
-			return
-		}
+	mux.HandleFunc("GET /telescope-position", func(w http.ResponseWriter, req *http.Request) {
 		err := json.NewEncoder(w).Encode(&tel_pos)
 		if err != nil {
 			logError(err)
 		}
 	})
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		var cmd Command
-		var id uint64
-		var tags Tags
-		var err error
-		var statusCode int
-
-		// parse command
-		if req.Method == "POST" {
-			endpoint := req.URL.Path
-			switch endpoint {
-			case "/acu/position-broadcast":
-				var x enablePositionBroadcastCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			case "/acu/spem":
-				var x setSPEMCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			case "/azimuth-scan":
-				var x azScanCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			case "/holography-scan":
-				var x holographyScanCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			case "/stow":
-				err = checkNoBody(req.Body)
-				cmd = stowCmd{}
-			case "/survival-mode":
-				err = checkNoBody(req.Body)
-				cmd = survivalModeCmd{}
-			case "/unstow":
-				err = checkNoBody(req.Body)
-				cmd = unstowCmd{}
-			case "/move-to":
-				var x moveToCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			case "/path":
-				var x pathCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			case "/track":
-				var x trackCmd
-				tags, err = decodeCmdBody(req.Body, &x)
-				cmd = x
-			default:
-				err = fmt.Errorf("bad endpoint: %s", endpoint)
-				statusCode = http.StatusNotFound
-				goto respond
+	// queued commands
+	commandHandler := func(parse cmdParser) http.HandlerFunc {
+		return func(w http.ResponseWriter, req *http.Request) {
+			cmd, tags, err := parse(req.Body)
+			id := newCmdID()
+			if err == nil {
+				err = cmd.Check()
 			}
-			id = newCmdID()
 			if err != nil {
-				statusCode = http.StatusBadRequest
-				goto respond
+				jsonResponse(w, id, err, http.StatusBadRequest)
+				return
 			}
-		} else {
-			// XXX:TODO: hacky
-			endpoint := req.URL.Path
-			switch endpoint {
-			case "/acu/position-broadcast", "/acu/spem", "/azimuth-scan", "/holography-scan", "/move-to", "/path", "/stow", "/survival-mode", "/track", "/unstow":
-				err = fmt.Errorf("method not POST")
-				statusCode = http.StatusMethodNotAllowed
-			default:
-				err = fmt.Errorf("bad endpoint: %s", endpoint)
-				statusCode = http.StatusNotFound
+
+			// stow & survival mode take priority over the running command
+			switch cmd.(type) {
+			case stowCmd, survivalModeCmd:
+				c := make(chan bool)
+				abort <- c
+				if <-c {
+					slog.Info("aborted running command", "cmd", id)
+				}
 			}
-			goto respond
-		}
 
-		// check parameters
-		err = cmd.Check()
-		if err != nil {
-			statusCode = http.StatusBadRequest
-			goto respond
+			// queue command
+			select {
+			case cmds <- queuedCmd{id, req.URL.Path, tags, cmd}:
+			case <-time.After(commandBusyTimeout):
+				jsonResponse(w, id, fmt.Errorf("busy"), http.StatusServiceUnavailable)
+				return
+			}
+			jsonResponse(w, id, nil, http.StatusOK)
 		}
+	}
+	mux.HandleFunc("POST /acu/position-broadcast", commandHandler(paramsCmd[enablePositionBroadcastCmd]))
+	mux.HandleFunc("POST /acu/spem", commandHandler(paramsCmd[setSPEMCmd]))
+	mux.HandleFunc("POST /azimuth-scan", commandHandler(paramsCmd[azScanCmd]))
+	mux.HandleFunc("POST /holography-scan", commandHandler(paramsCmd[holographyScanCmd]))
+	mux.HandleFunc("POST /move-to", commandHandler(paramsCmd[moveToCmd]))
+	mux.HandleFunc("POST /path", commandHandler(paramsCmd[pathCmd]))
+	mux.HandleFunc("POST /stow", commandHandler(noParamsCmd(stowCmd{})))
+	mux.HandleFunc("POST /survival-mode", commandHandler(noParamsCmd(survivalModeCmd{})))
+	mux.HandleFunc("POST /track", commandHandler(paramsCmd[trackCmd]))
+	mux.HandleFunc("POST /unstow", commandHandler(noParamsCmd(unstowCmd{})))
 
-		// stow & survival mode take priority over the running command
-		switch cmd.(type) {
-		case stowCmd, survivalModeCmd:
-			c := make(chan bool)
-			abort <- c
-			if <-c {
-				slog.Info("aborted running command", "cmd", id)
+	// catch-all: JSON 404 & 405 responses
+	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		var allowed []string
+		for _, method := range []string{http.MethodGet, http.MethodPost} {
+			r := req.Clone(req.Context())
+			r.Method = method
+			if _, pattern := mux.Handler(r); pattern != "/" {
+				allowed = append(allowed, method)
 			}
 		}
-
-		// queue command
-		select {
-		case cmds <- queuedCmd{id, req.URL.Path, tags, cmd}:
-		case <-time.After(commandBusyTimeout):
-			err = fmt.Errorf("busy")
-			statusCode = http.StatusServiceUnavailable
-			goto respond
+		if len(allowed) > 0 {
+			w.Header().Set("Allow", strings.Join(allowed, ", "))
+			err := fmt.Errorf("method not %s", strings.Join(allowed, " or "))
+			jsonResponse(w, 0, err, http.StatusMethodNotAllowed)
+			return
 		}
-
-		statusCode = http.StatusOK
-	respond:
-		jsonResponse(w, id, err, statusCode)
+		jsonResponse(w, 0, fmt.Errorf("bad endpoint: %s", req.URL.Path), http.StatusNotFound)
 	})
 
 	// start accepting commands
