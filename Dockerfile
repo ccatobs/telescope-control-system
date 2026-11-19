@@ -5,7 +5,7 @@
 # Requires an ssh-agent holding a key with read access to
 # github.com/ccatobs/antenna-control-unit (try `ssh-add -l`).
 
-FROM golang:1.25-bookworm AS build
+FROM golang:1.27 AS build
 RUN apt-get update \
  && apt-get install -y --no-install-recommends autoconf automake libtool xz-utils \
  && rm -rf /var/lib/apt/lists/*
