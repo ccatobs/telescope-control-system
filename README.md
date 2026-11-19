@@ -25,8 +25,12 @@ export FYST_ACU_PORT=8100
 
 ### Building
 
+Your ssh-agent needs to hold a key with read access to the
+`antenna-control-unit` repo (check with `ssh-add -l`). The key is
+forwarded into the build, and never stored in the image:
+
 ```sh
-docker build --build-arg SSH_PRIVATE_KEY="$(cat ~/.ssh/id_rsa)" -t tcs .
+docker build --ssh default -t tcs .
 ```
 
 ### Running

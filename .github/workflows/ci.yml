@@ -23,7 +23,16 @@ jobs:
         run: echo "ghp_pkg=ghcr.io/ccatobs/${{ env.package_name }}:$(date +'%Y-%m-%d')" >> $GITHUB_ENV
 
       - name: Build docker image
-        run: docker build --provenance=false --sbom=false --build-arg SSH_PRIVATE_KEY="${{ secrets.GH_READ_ACCESS_SSH_KEY_ED25519 }}" --tag "${{ env.ghp_pkg }}" .
+        env:
+          SSH_KEY: ${{ secrets.GH_READ_ACCESS_SSH_KEY_ED25519 }}
+        run: |
+          eval "$(ssh-agent -s)"
+          ssh-add - <<< "$SSH_KEY"
+          docker build --ssh default --provenance=false --sbom=false \
+            --label org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }} \
+            --label org.opencontainers.image.revision=${{ github.sha }} \
+            --tag "${{ env.ghp_pkg }}" .
+          ssh-agent -k
 
       - name: Login to GitHub Packages
         uses: docker/login-action@v4

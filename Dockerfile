@@ -1,25 +1,33 @@
-FROM golang:1
-RUN apt-get update && apt-get install -y \
-    autoconf \
-    automake \
-    libtool \
-    xz-utils
+# syntax=docker/dockerfile:1
 
-WORKDIR /go/src/github.com/ccatobs/telescope-control-system
+# Build with:
+#   docker build --ssh default .
+# Requires an ssh-agent holding a key with read access to
+# github.com/ccatobs/antenna-control-unit (try `ssh-add -l`).
 
-RUN mkdir /root/.ssh/
-ARG SSH_PRIVATE_KEY
-RUN echo "${SSH_PRIVATE_KEY}" > ~/.ssh/id_ed25519
-RUN chmod 700 /root/.ssh/id_ed25519
-RUN echo "Host github.com\n\tStrictHostKeyChecking no\n" >> /root/.ssh/config
-RUN git config --global url.ssh://git@github.com/ccatobs/.insteadOf https://github.com/ccatobs/
+FROM golang:1.25-bookworm AS build
+RUN apt-get update \
+ && apt-get install -y --no-install-recommends autoconf automake libtool xz-utils \
+ && rm -rf /var/lib/apt/lists/*
+WORKDIR /src
 
-COPY . .
+# C deps: rebuilt only when build-deps changes
+COPY build-deps .
 RUN ./build-deps
-RUN GOPRIVATE=github.com/ccatobs go get -v
-RUN go test -v
-RUN go install -a -v -tags netgo -ldflags=-extldflags=-static
+
+# Go deps: re-downloaded only when go.mod/go.sum change
+ENV GOPRIVATE=github.com/ccatobs GOFLAGS=-mod=readonly
+COPY .github/known_hosts /root/.ssh/known_hosts
+RUN git config --global url."ssh://git@github.com/ccatobs/".insteadOf https://github.com/ccatobs/
+COPY go.mod go.sum ./
+RUN --mount=type=ssh go mod download
+
+COPY *.go ./
+RUN go vet ./... && go test -v ./...
+RUN go build -trimpath -tags netgo,osusergo \
+      -ldflags='-s -w -extldflags=-static' -o /telescope-control-system
 
 FROM scratch
-COPY --from=0 /go/bin/telescope-control-system /
-CMD ["/telescope-control-system"]
+COPY --from=build /telescope-control-system /
+USER 65534:65534
+ENTRYPOINT ["/telescope-control-system"]
