@@ -9,7 +9,9 @@ cd "$prefix/src"
 # liberfa
 erfa_version="2.0.1"
 erfa_tarball="erfa-${erfa_version}.tar.xz"
-curl -LO "https://github.com/liberfa/erfa/releases/download/v${erfa_version}/${erfa_tarball}"
+erfa_sha256="45111f0addf6ef69345aaf093bd054705b41ac2db7541dd3f0e105362c8e20e4"
+curl -fLO "https://github.com/liberfa/erfa/releases/download/v${erfa_version}/${erfa_tarball}"
+echo "${erfa_sha256}  ${erfa_tarball}" | sha256sum -c -
 tar -xaf "$erfa_tarball"
 cd "erfa-${erfa_version}"
 [[ -f ./configure ]] || ./bootstrap.sh
