@@ -255,9 +255,11 @@ func main() {
 	acuMonitorPort := getenv("FYST_ACU_MONITOR_PORT", "8110")
 	acuAdminPort := getenv("FYST_ACU_ADMIN_PORT", "8080")
 	apiAddr := getenv("FYST_TCS_ADDR", ":5600")
+	trackUploadURL := os.Getenv("TCS_PROGRAM_TRACK_UPLOAD_URL")
 
 	acu := NewACU(acuHost, acuPort, acuMonitorPort, acuAdminPort)
 	tel := NewTelescope(acu)
+	tel.trackUploadURL = trackUploadURL
 
 	// report immediately any ACU problems
 	err := tel.UpdateStatus()
@@ -359,11 +361,14 @@ func main() {
 			if err != nil {
 				logCmdError(qc.id, err)
 				cancel()
+				tel.WaitForUploads()
+				tel.EndProgramTrack(false)
 				running.Store(nil)
 				continue
 			}
 
 			// wait for command to finish
+			aborted := false
 			for done := false; !done; {
 				select {
 				case <-time.After(statusUpdateDuration):
@@ -376,6 +381,7 @@ func main() {
 					slog.Info("aborting command", "cmd", qc.id)
 					c <- true
 					done = true
+					aborted = true
 					cancel()
 					err = tel.Stop()
 				}
@@ -387,6 +393,8 @@ func main() {
 			// stop any background work (e.g. pattern uploads), however the command ended
 			cancel()
 			tel.WaitForUploads()
+			// after WaitForUploads, so no batch is posted after this
+			tel.EndProgramTrack(!aborted && err == nil)
 
 			running.Store(nil)
 			slog.Info("command done", "cmd", qc.id)
@@ -553,7 +561,7 @@ func main() {
 			return
 		}
 		logNewCmd(id, "clear program track stack", nil)
-		err = acu.ProgramTrackClear()
+		err = tel.ClearProgramTrack()
 		statusCode := http.StatusOK
 		if err != nil {
 			logCmdError(id, err)

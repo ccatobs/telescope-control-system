@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/binary"
+	"encoding/json"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -117,5 +118,76 @@ func TestStartPatternUploadFails(t *testing.T) {
 	}
 	if slices.Contains(log, "/Command SetAzElMode ProgramTrack") {
 		t.Errorf("entered ProgramTrack mode after failed upload: %q", log)
+	}
+}
+
+// fakeHousekeeping returns the URL of a server that records
+// the number of points in each post in *posts.
+func fakeHousekeeping(t *testing.T, posts *[]int) string {
+	var mu sync.Mutex
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		var body struct {
+			Points []json.RawMessage `json:"points"`
+		}
+		if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.Points == nil {
+			t.Errorf("bad housekeeping post: %v", err)
+		}
+		mu.Lock()
+		*posts = append(*posts, len(body.Points))
+		mu.Unlock()
+	}))
+	t.Cleanup(srv.Close)
+	return srv.URL
+}
+
+// Housekeeping is sent an empty list only when a program track ends early.
+func TestEndProgramTrack(t *testing.T) {
+	points := make([]ScanPatternSample, 3)
+	for _, tc := range []struct {
+		name     string
+		post     bool
+		finished bool
+		want     []int
+	}{
+		{"track aborted", true, false, []int{3, 0}},
+		{"track finished", true, true, []int{3}},
+		{"no track aborted", false, false, nil},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			var posts []int
+			tel := NewTelescope(nil)
+			tel.trackUploadURL = fakeHousekeeping(t, &posts)
+			if tc.post {
+				tel.postTrackPoints(points)
+			}
+			tel.EndProgramTrack(tc.finished)
+			if !slices.Equal(posts, tc.want) {
+				t.Errorf("got posts %v, want %v", posts, tc.want)
+			}
+			// a later command that ends early shouldn't post again
+			tel.EndProgramTrack(false)
+			if !slices.Equal(posts, tc.want) {
+				t.Errorf("after second command: got posts %v, want %v", posts, tc.want)
+			}
+		})
+	}
+}
+
+// Clearing the program track sends housekeeping an empty list.
+func TestClearProgramTrackPostsEmpty(t *testing.T) {
+	var log []string
+	var posts []int
+	tel := NewTelescope(fakeProgramTrackACU(t, &log, false))
+	tel.trackUploadURL = fakeHousekeeping(t, &posts)
+	if err := tel.ClearProgramTrack(); err != nil {
+		t.Fatal(err)
+	}
+	if !slices.Equal(posts, []int{0}) {
+		t.Errorf("got posts %v, want [0]", posts)
+	}
+	// already cleared, so ending a command early shouldn't post again
+	tel.EndProgramTrack(false)
+	if !slices.Equal(posts, []int{0}) {
+		t.Errorf("got posts %v, want [0]", posts)
 	}
 }

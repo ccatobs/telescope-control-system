@@ -309,7 +309,7 @@ func startPattern(ctx context.Context, tel *Telescope, pattern ScanPattern) (IsD
 	// a previous upload must not add points after we clear the stack
 	tel.WaitForUploads()
 
-	err = tel.acu.ProgramTrackClear()
+	err = tel.ClearProgramTrack()
 	if err != nil {
 		return nil, err
 	}

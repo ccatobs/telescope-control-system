@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"math"
-	"os"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/ccatobs/antenna-control-unit/datasets"
@@ -22,6 +22,10 @@ type Telescope struct {
 	pointing Pointing
 	rec      datasets.StatusGeneral8100
 	uploads  *sync.WaitGroup // background program track uploads
+	posted   *atomic.Bool    // program track points were sent to housekeeping
+
+	// housekeeping URL program track points are posted to; empty disables posting
+	trackUploadURL string
 }
 
 func NewTelescope(acu *ACU) *Telescope {
@@ -29,6 +33,7 @@ func NewTelescope(acu *ACU) *Telescope {
 		acu:      acu,
 		pointing: NewPointing(),
 		uploads:  new(sync.WaitGroup),
+		posted:   new(atomic.Bool),
 	}
 }
 
@@ -142,6 +147,47 @@ func (t Telescope) MoveTo(az, el float64) error {
 	return t.acu.ModeSet("Preset")
 }
 
+// postTrackPoints sends program track points to housekeeping.
+// An empty list means the program track was cleared, aborted, or failed.
+// Errors are logged and otherwise ignored.
+func (t Telescope) postTrackPoints(points []ScanPatternSample) {
+	url := t.trackUploadURL
+	if url == "" {
+		return
+	}
+	t.posted.Store(len(points) > 0)
+	if points == nil {
+		points = []ScanPatternSample{} // encode as [], not null
+	}
+	err := postJSON(url, &struct {
+		Points []ScanPatternSample `json:"points"`
+	}{
+		Points: points,
+	})
+	if err != nil {
+		slog.Warn("housekeeping post failed", "err", err)
+	}
+}
+
+// ClearProgramTrack clears the ACU program track stack, and tells housekeeping.
+func (t Telescope) ClearProgramTrack() error {
+	err := t.acu.ProgramTrackClear()
+	if err != nil {
+		return err
+	}
+	t.postTrackPoints(nil)
+	return nil
+}
+
+// EndProgramTrack is called when a command ends, after its uploads have exited.
+// If the command sent program track points to housekeeping but didn't finish
+// normally (it was aborted or failed), housekeeping is sent an empty list.
+func (t Telescope) EndProgramTrack(finished bool) {
+	if t.posted.Swap(false) && !finished {
+		t.postTrackPoints(nil)
+	}
+}
+
 // UploadScanPattern uploads a program track in batches.
 // firstBatch is closed once the first batch has been uploaded.
 func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern, firstBatch chan<- struct{}) error {
@@ -219,20 +265,7 @@ func (t Telescope) UploadScanPattern(ctx context.Context, pattern ScanPattern, f
 			close(firstBatch)
 		}
 
-		// send points to housekeeping
-		// XXX:FIXME temporary hack
-		url := os.Getenv("XXX_PROGRAM_TRACK_UPLOAD_URL")
-		if url != "" {
-			err = postJSON(url, &struct {
-				Points []ScanPatternSample `json:"points"`
-			}{
-				Points: samples[:n],
-			})
-			if err != nil {
-				slog.Warn("upload: housekeeping post failed", "err", err)
-				// ignore error
-			}
-		}
+		t.postTrackPoints(samples[:n])
 
 		if pattern.Done(iter) {
 			slog.Info("upload: done", "total", total)
