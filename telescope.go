@@ -80,16 +80,28 @@ func (t Telescope) Ready() error {
 	if !t.rec.Remote {
 		return fmt.Errorf("ACU not in remote mode")
 	}
+	if t.rec.AzimuthComputerDisabled != 0 {
+		return fmt.Errorf("ACU azimuth computer disabled")
+	}
+	if t.rec.ElevationComputerDisabled != 0 {
+		return fmt.Errorf("ACU elevation computer disabled")
+	}
+	if t.rec.AzimuthAxisDisabled != 0 {
+		return fmt.Errorf("ACU azimuth axis disabled")
+	}
+	if t.rec.ElevationAxisDisabled != 0 {
+		return fmt.Errorf("ACU elevation axis disabled")
+	}
 	var extra datasets.StatusExtra8100
 	err := t.acu.DatasetGet("StatusExtra8100", &extra)
 	if err != nil {
 		return err
 	}
 	if !extra.AzimuthProfilerActive {
-		return fmt.Errorf("azimuth profiler not active")
+		return fmt.Errorf("ACU azimuth profiler not active")
 	}
 	if !extra.ElevationProfilerActive {
-		return fmt.Errorf("elevation profiler not active")
+		return fmt.Errorf("ACU elevation profiler not active")
 	}
 	return nil
 }
