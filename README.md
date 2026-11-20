@@ -63,8 +63,8 @@ For `/track`, the `ra` and `dec` fields hold the first and second coordinate reg
 Command responses are JSON, and include a TCS-generated command `id`:
 
 ```json
-{"status":"ok","id":1790171339199}
-{"status":"error","id":1790171339200,"message":"commanded azimuth (1000) out of range [-180,360]"}
+{"status":"ok","id":14478539199}
+{"status":"error","id":14478539200,"message":"commanded azimuth (1000) out of range [-180,360]"}
 ```
 
 IDs are assigned to every recognized `POST` command, including rejected ones,
@@ -218,7 +218,7 @@ curl 'localhost:5600/status'
 ```
 
 ```json
-{"status":"ok","command":{"id":1790171339201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1790171340.12}}
+{"status":"ok","command":{"id":14478539201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1790171340.12}}
 {"status":"ok","command":null}
 ```
 

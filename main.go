@@ -60,11 +60,14 @@ func logCmdError(id uint64, err error) {
 }
 
 // Command IDs come from a simple incrementing counter. It's seeded with
-// the startup time in milliseconds, so IDs stay unique across restarts.
+// the startup time in milliseconds since cmdIDEpoch, so IDs stay unique
+// across restarts. A custom epoch keeps them from looking like Unix timestamps.
 var lastCmdID atomic.Uint64
 
+var cmdIDEpoch = time.Date(2026, 4, 9, 0, 0, 0, 0, time.UTC) // FYST inauguration
+
 func init() {
-	lastCmdID.Store(uint64(time.Now().UnixMilli()))
+	lastCmdID.Store(uint64(time.Since(cmdIDEpoch).Milliseconds()))
 }
 
 func newCmdID() uint64 {
