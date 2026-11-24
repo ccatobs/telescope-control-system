@@ -168,6 +168,12 @@ func (acu *ACU) DatasetGet(name string, d interface{}) error {
 	return binary.Read(r, binary.LittleEndian, d)
 }
 
+// ValuesGet fetches the actual values of an ACU module, as JSON.
+// The identifier must already be query-escaped (e.g. "Tiltmeter+Az").
+func (acu *ACU) ValuesGet(identifier string) ([]byte, error) {
+	return acu.getMonitor("/Values?identifier=" + identifier + "&type=Actual&format=JSON")
+}
+
 func newDataset[T any]() any { return new(T) }
 
 // acuDatasets maps dataset names to constructors for their records.

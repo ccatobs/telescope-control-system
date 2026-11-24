@@ -250,6 +250,16 @@ Undefined (NaN) values are `null`.
 ```sh
 curl 'localhost:5600/acu/datasets/Shutter'
 ```
+
+### `/acu/values/<identifier>`
+
+Get the actual values of an ACU module as JSON, as returned by the ACU's
+`/Values?identifier=<identifier>&type=Actual&format=JSON`.
+
+```sh
+curl 'localhost:5600/acu/values/Antenna.Corrections.Tiltmeter+Az'
+```
+
 ### `/acu/failure-reset`
 
 Reset failures. Needed after E-stops.

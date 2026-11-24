@@ -513,6 +513,19 @@ func main() {
 		w.Write(append(b, '\n'))
 	})
 
+	mux.HandleFunc("GET /acu/values/{identifier}", func(w http.ResponseWriter, req *http.Request) {
+		// forward the identifier as the client escaped it, so that
+		// the ACU decodes it (e.g. "+" and "%20" are both spaces)
+		id := strings.TrimPrefix(req.URL.EscapedPath(), "/acu/values/")
+		b, err := acu.ValuesGet(id)
+		if err != nil {
+			jsonResponse(w, 0, err, http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(b)
+	})
+
 	mux.HandleFunc("POST /acu/failure-reset", func(w http.ResponseWriter, req *http.Request) {
 		id := newCmdID()
 		err := checkNoBody(req.Body)

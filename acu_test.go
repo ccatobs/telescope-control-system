@@ -57,6 +57,33 @@ func TestDatasetGet(t *testing.T) {
 	}
 }
 
+func TestValuesGet(t *testing.T) {
+	const body = `{"Mode": "Stop"}`
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
+		q := req.URL.Query()
+		if got := q.Get("identifier"); got != "Antenna.Corrections.Tiltmeter Az" {
+			t.Errorf("identifier = %q", got)
+		}
+		if got := q.Get("format"); got != "JSON" {
+			t.Errorf("format = %q", got)
+		}
+		w.Write([]byte(body))
+	}))
+	defer srv.Close()
+
+	host, port, _ := net.SplitHostPort(srv.Listener.Addr().String())
+	acu := NewACU(host, port, port, port)
+	for _, id := range []string{"Antenna.Corrections.Tiltmeter+Az", "Antenna.Corrections.Tiltmeter%20Az"} {
+		b, err := acu.ValuesGet(id)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if string(b) != body {
+			t.Errorf("%q: got %q, want %q", id, b, body)
+		}
+	}
+}
+
 func TestSPEMParameterSet(t *testing.T) {
 	var got []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
