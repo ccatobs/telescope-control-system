@@ -451,6 +451,9 @@ func main() {
 		// stop before resetting failures, so the axes don't resume a previous mode;
 		// try both, even if stopping fails (e.g. because of a latched failure)
 		err = errors.Join(tel.Stop(), acu.FailureReset())
+		// an aborted command's uploads must not add points after we clear the stack
+		tel.WaitForUploads()
+		err = errors.Join(err, tel.ClearProgramTrack())
 		statusCode := http.StatusOK
 		if err != nil {
 			logCmdError(id, err)

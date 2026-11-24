@@ -90,7 +90,8 @@ curl -X POST 'http://localhost:5600/abort'
 
 ### `/reset`
 
-Abort the current command (if any), stop the telescope, and reset ACU failures.
+Abort the current command (if any), stop the telescope, reset ACU failures,
+and clear the program track stack.
 Use after an E-stop, or to get the telescope back to a known state.
 
 ```sh
