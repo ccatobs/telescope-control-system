@@ -205,12 +205,14 @@ func statusParams(cmd Command) any {
 	return cmd
 }
 
-// statusResponse writes the /status response. A nil rc means no command is running.
-func statusResponse(w http.ResponseWriter, rc *runningCmd) {
+// statusResponse writes the /status response as of time now.
+// A nil rc means no command is running.
+func statusResponse(w http.ResponseWriter, now time.Time, rc *runningCmd) {
 	response := struct {
-		S       string      `json:"status"`
-		Command *runningCmd `json:"command"`
-	}{"ok", rc}
+		S         string      `json:"status"`
+		Timestamp float64     `json:"timestamp"`
+		Command   *runningCmd `json:"command"`
+	}{"ok", Time2Unixtime(now), rc}
 
 	err := writeJSON(w, response)
 	if err != nil {
@@ -414,7 +416,7 @@ func main() {
 	})
 
 	mux.HandleFunc("GET /status", func(w http.ResponseWriter, req *http.Request) {
-		statusResponse(w, running.Load())
+		statusResponse(w, time.Now(), running.Load())
 	})
 
 	mux.HandleFunc("POST /abort", func(w http.ResponseWriter, req *http.Request) {

@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestDecodeCmdBody(t *testing.T) {
@@ -89,21 +90,22 @@ func TestCheckNoBody(t *testing.T) {
 }
 
 func TestStatusResponse(t *testing.T) {
+	now := time.Unix(1790171340, 500000000)
 	w := httptest.NewRecorder()
-	statusResponse(w, nil)
-	if got, want := w.Body.String(), `{"status":"ok","command":null}`+"\n"; got != want {
+	statusResponse(w, now, nil)
+	if got, want := w.Body.String(), `{"status":"ok","timestamp":1790171340.5,"command":null}`+"\n"; got != want {
 		t.Errorf("idle: got %q, want %q", got, want)
 	}
 
 	w = httptest.NewRecorder()
-	statusResponse(w, &runningCmd{
+	statusResponse(w, now, &runningCmd{
 		ID:        7,
 		Endpoint:  "/move-to",
 		Params:    moveToCmd{Azimuth: 120, Elevation: 45},
 		Tags:      Tags{"scan": "s42"},
 		StartedAt: 1.5,
 	})
-	want := `{"status":"ok","command":{"id":7,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1.5}}` + "\n"
+	want := `{"status":"ok","timestamp":1790171340.5,"command":{"id":7,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1.5}}` + "\n"
 	if got := w.Body.String(); got != want {
 		t.Errorf("running: got %q, want %q", got, want)
 	}
@@ -111,7 +113,7 @@ func TestStatusResponse(t *testing.T) {
 
 func TestStatusParamsPath(t *testing.T) {
 	w := httptest.NewRecorder()
-	statusResponse(w, &runningCmd{
+	statusResponse(w, time.Unix(1615586630, 250000000), &runningCmd{
 		ID:       8,
 		Endpoint: "/path",
 		Params: statusParams(pathCmd{
@@ -121,7 +123,7 @@ func TestStatusParamsPath(t *testing.T) {
 		}),
 		StartedAt: 1.5,
 	})
-	want := `{"status":"ok","command":{"id":8,"endpoint":"/path","params":{"coordsys":"ICRS","num_points":2,"start_time":1615586629},"started_at":1.5}}` + "\n"
+	want := `{"status":"ok","timestamp":1615586630.25,"command":{"id":8,"endpoint":"/path","params":{"coordsys":"ICRS","num_points":2,"start_time":1615586629},"started_at":1.5}}` + "\n"
 	if got := w.Body.String(); got != want {
 		t.Errorf("got %q, want %q", got, want)
 	}

@@ -211,6 +211,7 @@ ___
 ### `/status`
 
 Get the currently running command, or `null` if idle.
+`timestamp` is the unixtime of the response, according to the TCS clock.
 `started_at` is the unixtime when the TCS began executing the command.
 For `/path` commands, `params` has `num_points` in place of the full `points` list.
 
@@ -219,8 +220,8 @@ curl 'localhost:5600/status'
 ```
 
 ```json
-{"status":"ok","command":{"id":14478539201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1790171340.12}}
-{"status":"ok","command":null}
+{"status":"ok","timestamp":1790171342.56,"command":{"id":14478539201,"endpoint":"/move-to","params":{"azimuth":120,"elevation":45},"tags":{"scan":"s42"},"started_at":1790171340.12}}
+{"status":"ok","timestamp":1790171342.56,"command":null}
 ```
 
 ### `/telescope-position`
