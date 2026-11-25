@@ -1,9 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
+	jsonv1 "encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"io"
@@ -115,8 +116,8 @@ func (tags Tags) LogValue() slog.Value {
 // decodeCmdBody decodes a JSON command body into v, rejecting unknown fields,
 // and returns the tags from its optional "tags" field.
 func decodeCmdBody(body io.Reader, v any) (Tags, error) {
-	var fields map[string]json.RawMessage
-	err := json.NewDecoder(body).Decode(&fields)
+	var fields map[string]jsontext.Value
+	err := json.UnmarshalRead(body, &fields)
 	if err != nil {
 		return nil, err
 	}
@@ -137,9 +138,12 @@ func decodeCmdBody(body io.Reader, v any) (Tags, error) {
 	if err != nil {
 		return nil, err
 	}
-	dec := json.NewDecoder(bytes.NewReader(rest))
-	dec.DisallowUnknownFields()
-	return tags, dec.Decode(v)
+	return tags, json.Unmarshal(rest, v,
+		json.RejectUnknownMembers(true),
+		// match names case-insensitively, like encoding/json v1
+		json.MatchCaseInsensitiveNames(true),
+		jsonv1.MatchCaseSensitiveDelimiter(true),
+	)
 }
 
 // checkNoBody returns an error if a command which takes no parameters has a body.
@@ -208,9 +212,7 @@ func statusResponse(w http.ResponseWriter, rc *runningCmd) {
 		Command *runningCmd `json:"command"`
 	}{"ok", rc}
 
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	err := enc.Encode(response)
+	err := writeJSON(w, response)
 	if err != nil {
 		logError(err)
 	}
@@ -234,9 +236,7 @@ func jsonResponse(w http.ResponseWriter, id uint64, err error, statusCode int) {
 	}
 
 	w.WriteHeader(statusCode)
-	enc := json.NewEncoder(w)
-	enc.SetEscapeHTML(false)
-	err = enc.Encode(response)
+	err = writeJSON(w, response)
 	if err != nil {
 		logError(err)
 	}
@@ -470,7 +470,7 @@ func main() {
 			return
 		}
 
-		// XXX: encoding/json doesn't handle NaNs
+		// XXX: encoding/json doesn't handle NaNs; keep -1e9 for existing clients
 		if math.IsNaN(rec.AzimuthCommandedPosition) {
 			rec.AzimuthCommandedPosition = -1e9
 		}
@@ -478,14 +478,14 @@ func main() {
 			rec.ElevationCommandedPosition = -1e9
 		}
 
-		err = json.NewEncoder(w).Encode(&rec)
+		err = writeJSON(w, &rec)
 		if err != nil {
 			logError(err)
 		}
 	})
 
 	mux.HandleFunc("GET /acu/datasets", func(w http.ResponseWriter, req *http.Request) {
-		err := json.NewEncoder(w).Encode(slices.Sorted(maps.Keys(acuDatasets)))
+		err := writeJSON(w, slices.Sorted(maps.Keys(acuDatasets)))
 		if err != nil {
 			logError(err)
 		}
@@ -589,7 +589,7 @@ func main() {
 	mux.HandleFunc("POST /clear-track", deprecated("/path/clear", clearPath)) // deprecated
 
 	mux.HandleFunc("GET /telescope-position", func(w http.ResponseWriter, req *http.Request) {
-		err := json.NewEncoder(w).Encode(&tel_pos)
+		err := writeJSON(w, &tel_pos)
 		if err != nil {
 			logError(err)
 		}

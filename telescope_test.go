@@ -2,7 +2,8 @@ package main
 
 import (
 	"encoding/binary"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -127,9 +128,9 @@ func fakeHousekeeping(t *testing.T, posts *[]int) string {
 	var mu sync.Mutex
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		var body struct {
-			Points []json.RawMessage `json:"points"`
+			Points []jsontext.Value `json:"points"`
 		}
-		if err := json.NewDecoder(req.Body).Decode(&body); err != nil || body.Points == nil {
+		if err := json.UnmarshalRead(req.Body, &body); err != nil || body.Points == nil {
 			t.Errorf("bad housekeeping post: %v", err)
 		}
 		mu.Lock()

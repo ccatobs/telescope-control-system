@@ -24,6 +24,23 @@ func TestDecodeCmdBody(t *testing.T) {
 	}
 }
 
+// Parameter names match case-insensitively, as with encoding/json v1.
+func TestDecodeCmdBodyCaseInsensitive(t *testing.T) {
+	var cmd trackCmd
+	body := `{"START_TIME": 1, "Stop_Time": 2, "RA": 3, "Dec": 4, "coordsys": "ICRS"}`
+	if _, err := decodeCmdBody(strings.NewReader(body), &cmd); err != nil {
+		t.Fatal(err)
+	}
+	if cmd != (trackCmd{StartTime: 1, StopTime: 2, RA: 3, Dec: 4, Coordsys: "ICRS"}) {
+		t.Errorf("got cmd %#v", cmd)
+	}
+
+	// but underscores still matter
+	if _, err := decodeCmdBody(strings.NewReader(`{"starttime": 1}`), &cmd); err == nil {
+		t.Error("starttime matched start_time")
+	}
+}
+
 func TestDecodeCmdBodyErrors(t *testing.T) {
 	for _, body := range []string{
 		``,                                    // missing body

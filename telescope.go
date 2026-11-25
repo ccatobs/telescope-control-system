@@ -156,9 +156,6 @@ func (t Telescope) postTrackPoints(points []ScanPatternSample) {
 		return
 	}
 	t.posted.Store(len(points) > 0)
-	if points == nil {
-		points = []ScanPatternSample{} // encode as [], not null
-	}
 	err := postJSON(url, &struct {
 		Points []ScanPatternSample `json:"points"`
 	}{

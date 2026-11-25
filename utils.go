@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
+	"io"
 	"net/http"
 	"time"
 )
@@ -11,7 +13,12 @@ import (
 // uploads, which the main loop waits for.
 var postJSONClient = &http.Client{Timeout: 2 * time.Second}
 
-func postJSON(url string, data interface{}) error {
+// writeJSON writes v to w as JSON, followed by a newline.
+func writeJSON(w io.Writer, v any) error {
+	return json.MarshalEncode(jsontext.NewEncoder(w), v)
+}
+
+func postJSON(url string, data any) error {
 	b, err := json.Marshal(data)
 	if err != nil {
 		return err
