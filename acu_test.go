@@ -115,10 +115,10 @@ func TestSPEMParamsMatchDataset(t *testing.T) {
 	var names []string
 	typ := reflect.TypeFor[datasets.CmdSPEMParameter]()
 	for i := range typ.NumField() {
-		tag := typ.Field(i).Tag.Get("json")
-		if name, ok := strings.CutPrefix(tag, "Parameter "); ok {
+		field := typ.Field(i).Name
+		if name, ok := strings.CutPrefix(field, "Parameter"); ok {
 			names = append(names, name)
-		} else if tag == "LEL velocity" {
+		} else if field == "LELVelocity" {
 			names = append(names, "LEL_velocity")
 		}
 	}
