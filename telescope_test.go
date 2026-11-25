@@ -37,7 +37,8 @@ func TestStatusTime(t *testing.T) {
 func TestCalibrateTime(t *testing.T) {
 	for _, offset := range []time.Duration{-3 * time.Second, 0, 3 * time.Second} {
 		tel := NewTelescope(nil)
-		tel.rec = statusRec(time.Now().Add(offset))
+		rec := statusRec(time.Now().Add(offset))
+		tel.status.Store(&rec)
 		if err := tel.CalibrateTime(); err != nil {
 			t.Fatalf("CalibrateTime(%v): %v", offset, err)
 		}
@@ -191,4 +192,24 @@ func TestClearProgramTrackPostsEmpty(t *testing.T) {
 	if !slices.Equal(posts, []int{0}) {
 		t.Errorf("got posts %v, want [0]", posts)
 	}
+}
+
+// /healthz calls Ready from an HTTP handler while the main loop calls UpdateStatus.
+func TestReadyDuringUpdateStatus(t *testing.T) {
+	var log []string
+	tel := NewTelescope(fakeProgramTrackACU(t, &log, false))
+	if err := tel.UpdateStatus(); err != nil {
+		t.Fatal(err)
+	}
+	done := make(chan struct{})
+	go func() {
+		defer close(done)
+		for range 20 {
+			tel.UpdateStatus()
+		}
+	}()
+	for range 20 {
+		tel.Ready()
+	}
+	<-done
 }

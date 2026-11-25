@@ -20,9 +20,11 @@ const maxClockOffset = 24 * time.Hour
 type Telescope struct {
 	acu      *ACU
 	pointing Pointing
-	rec      datasets.StatusGeneral8100
-	uploads  *sync.WaitGroup // background program track uploads
-	posted   *atomic.Bool    // program track points were sent to housekeeping
+	// latest ACU status, replaced (never modified) by UpdateStatus,
+	// so it can be read while the main loop updates it
+	status  *atomic.Pointer[datasets.StatusGeneral8100]
+	uploads *sync.WaitGroup // background program track uploads
+	posted  *atomic.Bool    // program track points were sent to housekeeping
 
 	// housekeeping URL program track points are posted to; empty disables posting
 	trackUploadURL string
@@ -32,6 +34,7 @@ func NewTelescope(acu *ACU) *Telescope {
 	return &Telescope{
 		acu:      acu,
 		pointing: NewPointing(),
+		status:   new(atomic.Pointer[datasets.StatusGeneral8100]),
 		uploads:  new(sync.WaitGroup),
 		posted:   new(atomic.Bool),
 	}
@@ -44,12 +47,22 @@ func (t Telescope) WaitForUploads() {
 }
 
 func (t *Telescope) UpdateStatus() error {
-	t.rec.Year = 0 // invalidate current status
-	return t.acu.StatusGeneral8100Get(&t.rec)
+	rec := new(datasets.StatusGeneral8100)
+	err := t.acu.StatusGeneral8100Get(rec)
+	if err != nil {
+		*rec = datasets.StatusGeneral8100{} // Year 0 marks the status invalid
+	}
+	t.status.Store(rec)
+	return err
 }
 
+// Status returns the latest ACU status, which callers must not modify.
+// Before the first UpdateStatus it's empty, with Year 0.
 func (t Telescope) Status() *datasets.StatusGeneral8100 {
-	return &t.rec
+	if rec := t.status.Load(); rec != nil {
+		return rec
+	}
+	return new(datasets.StatusGeneral8100)
 }
 
 // statusTime returns the time of an ACU status record,
@@ -60,10 +73,11 @@ func statusTime(rec *datasets.StatusGeneral8100) time.Time {
 }
 
 func (t *Telescope) CalibrateTime() error {
-	if t.rec.Year == 0 {
+	rec := t.Status()
+	if rec.Year == 0 {
 		return fmt.Errorf("can't calibrate time: can't contact ACU")
 	}
-	offset := statusTime(&t.rec).Sub(time.Now())
+	offset := statusTime(rec).Sub(time.Now())
 	if offset.Abs() > maxClockOffset {
 		return fmt.Errorf("ACU/TCS clock mismatch too large to correct: %v", offset)
 	}
@@ -73,28 +87,29 @@ func (t *Telescope) CalibrateTime() error {
 }
 
 func (t Telescope) Ready() error {
-	if t.rec.Year == 0 {
+	rec := t.Status()
+	if rec.Year == 0 {
 		return fmt.Errorf("can't contact ACU")
 	}
-	if t.rec.Year > 2024 {
-		mismatch := statusTime(&t.rec).Sub(time.Now().Add(t.pointing.tOffset))
+	if rec.Year > 2024 {
+		mismatch := statusTime(rec).Sub(time.Now().Add(t.pointing.tOffset))
 		if mismatch.Abs() > 2*time.Second {
 			return fmt.Errorf("ACU & TCS clock mismatch: %v", mismatch)
 		}
 	}
-	if !t.rec.Remote {
+	if !rec.Remote {
 		return fmt.Errorf("ACU not in remote mode")
 	}
-	if t.rec.AzimuthComputerDisabled != 0 {
+	if rec.AzimuthComputerDisabled != 0 {
 		return fmt.Errorf("ACU azimuth computer disabled")
 	}
-	if t.rec.ElevationComputerDisabled != 0 {
+	if rec.ElevationComputerDisabled != 0 {
 		return fmt.Errorf("ACU elevation computer disabled")
 	}
-	if t.rec.AzimuthAxisDisabled != 0 {
+	if rec.AzimuthAxisDisabled != 0 {
 		return fmt.Errorf("ACU azimuth axis disabled")
 	}
-	if t.rec.ElevationAxisDisabled != 0 {
+	if rec.ElevationAxisDisabled != 0 {
 		return fmt.Errorf("ACU elevation axis disabled")
 	}
 	var extra datasets.StatusExtra8100
